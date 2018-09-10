@@ -110,6 +110,9 @@ def main1():
     Gm= 32. #calcite
     Km= 76.8
     rhom= 2.71
+#    Km = 37.9#quartzo
+#    Gm = 44.3
+#    rhom = 2.65
     Kf = 2.2
 #    Gm2= 94.9 #dolomite
 #    Km2= 38.8
@@ -157,7 +160,8 @@ def main1():
         
         Vp = np.sqrt((Ks + 4.0*G/3.0)/rho)
         Vs = np.sqrt(G/rho)
-
+        k_reuss = (phi/Kf + (1 - phi)/Km)**(-1)
+        k_voigt = phi*Kf+ (1 - phi)*Km
 #            vp_ref.append(Vp)
 #        
 #            phi = p*phic + (1-p)*phir
@@ -171,13 +175,19 @@ def main1():
 #            plt.plot(phi, Vp, 'b--')
 #        else:
 #            plt.plot(phi, Vp, 'b-.')
-#        plt.plot(phi, Vp, 'b')
-#        plt.plot(phi, Vs, 'g')
+        plt.plot(phi, Vp, 'b')
+#        plt.plot(phi, Vs, 'b')
 #        plt.plot(phi, rho, 'g')
-#        plt.plot(phi, Ks, 'g')
+#        plt.plot(phi, Ks, 'b')
 #        print Ks
-        plt.plot(phi, G, 'g')
-#        plt.plot(phi, (Ks + 4.0*G/3.0), 'g')
+#        plt.plot(phi, G, 'g')
+#        for i in range (len(Ks)):
+#            if i !=0:
+#                print (Ks[i] + 4.0*G[i]/3.0)-(Ks[i-1] + 4.0*G[i-1]/3.0)
+        #(Ks + 4.0*G/3.0)
+#        plt.plot(phi, k_reuss, 'g')
+#        plt.plot(phi, (Ks + 4.0*G/3.0), 'b')
+#        plt.plot(phi, k_voigt, 'g')
     
     plt.grid()
     plt.show()
@@ -228,17 +238,21 @@ def main2():
     plt.xlim([0.0, 0.5])
     plt.show()
 
+def Poisson (Km, Gm):
+    return (3.*Km-2.*Gm)/(2.*(3.*Km+Gm)) 
+
 def Calcite ():
     Kmcal = 76.8
     Gmcal = 32.0
-    rhocal = 2.71
+    rhocal = 2.710
     Ccal = np.zeros((6,6))
     Ccal[0][0]=Ccal[1][1]=Ccal[2][2] = Kmcal +4.*Gmcal/3
     Ccal[3][3]=Ccal[4][4]=Ccal[5][5] = Gmcal
     Ccal[0][1]=Ccal[0][2]=Ccal[1][0]=Ccal[1][2]=Ccal[2][0]=Ccal[2][1] = Kmcal - 2.*Gmcal/3
 #    phical = 0.2
 #    alphacal = 0.2
-    poiscal = (3.*Kmcal-2.*Gmcal)/(2.*(3.*Kmcal+Gmcal))    
+    poiscal = Poisson(Kmcal, Gmcal)
+#    (3.*Kmcal-2.*Gmcal)/(2.*(3.*Kmcal+Gmcal))    
     Ccal_ = VoigttoKelvin(Ccal)
 #    print 'antes kelvin \n', Ccal, '\n', Ccal_
 #    print Ccal[0][0]**0.5
@@ -252,7 +266,7 @@ def Dolomite ():
     Cdol[0][0]=Cdol[1][1]=Cdol[2][2] = Kmdol +4.*Gmdol/3
     Cdol[3][3]=Cdol[4][4]=Cdol[5][5] = Gmdol
     Cdol[0][1]=Cdol[0][2]=Cdol[1][0]=Cdol[1][2]=Cdol[2][0]=Cdol[2][1] = Kmdol - 2.*Gmdol/3
-    poisdol = (3.*Kmdol-2.*Gmdol)/(2.*(3.*Kmdol+Gmdol))
+    poisdol = Poisson(Kmdol, Gmdol)#(3.*Kmdol-2.*Gmdol)/(2.*(3.*Kmdol+Gmdol))
     Cdol_ = VoigttoKelvin(Cdol)
     return [Cdol_, rhodol, poisdol]
 
@@ -264,7 +278,7 @@ def Aragonite ():
     Cara[0][0]=Cara[1][1]=Cara[2][2] = Kmara +4.*Gmara/3
     Cara[3][3]=Cara[4][4]=Cara[5][5] = Gmara
     Cara[0][1]=Cara[0][2]=Cara[1][0]=Cara[1][2]=Cara[2][0]=Cara[2][1] = Kmara - 2.*Gmara/3
-    poisara = (3.*Kmara-2.*Gmara)/(2.*(3.*Kmara+Gmara))
+    poisara = Poisson(Kmara, Gmara)#(3.*Kmara-2.*Gmara)/(2.*(3.*Kmara+Gmara))
     Cara_ = VoigttoKelvin(Cara)
     return [Cara_, rhoara, poisara]
     
@@ -276,7 +290,7 @@ def Quartzo ():
     Cq[0][0]=Cq[1][1]=Cq[2][2] = Kmq +4.*Gmq/3
     Cq[3][3]=Cq[4][4]=Cq[5][5] = Gmq
     Cq[0][1]=Cq[0][2]=Cq[1][0]=Cq[1][2]=Cq[2][0]=Cq[2][1] = Kmq - 2.*Gmq/3
-    poisq = (3.*Kmq-2.*Gmq)/(2.*(3.*Kmq+Gmq))
+    poisq = Poisson(Kmq, Gmq)#(3.*Kmq-2.*Gmq)/(2.*(3.*Kmq+Gmq))
     Cq_ = VoigttoKelvin(Cq)
     print Cq_[0][0]
     return [Cq_, rhoq, poisq]
@@ -300,7 +314,7 @@ def Clay ():
 def Water ():
 #    Kmw = 2.2
 #    Gmw = 0.0
-    rhow = 0.99
+    rhow = 1.1
     Cw = np.zeros((6,6))
     Cw[0][0] = Cw[1][1] = 2.2
     Cw[2][2] = 2.2
@@ -334,23 +348,38 @@ def Ar():
     
 def Dqs (C0, km, kn):
     return C0*km*kn
-    
-def Green (alpha, C):
-#    E = [Epqrs, Epqsr, Eqprs, Eqpsr]   --> iguais !
-#    G = -0.25*(E[0] + E[1] + E[2] + E[3])
-    
-    C11 = C[0][0] 
-    C44 = C[3][3]
-    C33 = C[2][2]
-    C12 = C[0][1]
-    C21 = C[1][0]
-    C13 = C[0][2]
-    Epqrs = E(alpha, C11, C44, C33, C12, C21, C13)
-    G = -1.*Epqrs
+
+def TensorGreen (alpha, C0):
+    C0 = KelvintoVoigt(C0)
+    Etensor = E(alpha,C0)
+    Epqrs = Etensor[0]
+    Epqsr = Etensor[1]
+    Eqprs = Etensor[2]
+    Eqpsr = Etensor[3]
+    G = -0.25*(Epqrs + Epqsr + Eqprs + Eqpsr)
     return G
     
-def E (alpha, C11, C44, C33, C12, C21, C13):
+#def Green (alpha, C):
+##    E = [Epqrs, Epqsr, Eqprs, Eqpsr]   --> iguais !
+##    G = -0.25*(E[0] + E[1] + E[2] + E[3])
+#    
+#    C11 = C[0][0] 
+#    C44 = C[3][3]
+#    C33 = C[2][2]
+#    C12 = C[0][1]
+#    C21 = C[1][0]
+#    C13 = C[0][2]
+#    Epqrs = E(alpha, C11, C44, C33, C12, C13)
+#    G = -1.*Epqrs
+#    return G
+    
+def E (alpha, C0):
     from scipy.integrate import quad
+    C11 = C0[0][0]
+    C44 = C0[3][3]
+    C33 = C0[2][2]
+    C12 = C0[0][1]
+    C13 = C0[0][2]
     d = C11
     f = C44
     h = C33
@@ -391,23 +420,53 @@ def E (alpha, C11, C44, C33, C12, C21, C13):
     E1212 = (0.5*np.pi)*quad(e1212, 0, 1)[0]
     E1313 = (-2*np.pi)*quad(e1313, 0, 1)[0]                    #E2323
     
-    e = np.zeros((6,6))
-    e[0][0] = e[1][1] = E1111
-    e[2][2] = E3333
-    e[0][1] = e[1][0] = E1122
-    e[0][2] = e[1][2] = E1133
-    e[2][0] = e[2][1] = E3311
-    e[5][5] = E1212
-    e[4][4] = e[3][3] = E1313
+    Epqrs = np.zeros((6,6))
+    Epqrs[0][0] = Epqrs[1][1] = E1111
+    Epqrs[2][2] = E3333
+    Epqrs[0][1] = Epqrs[1][0] = E1122
+    Epqrs[0][2] = Epqrs[1][2] = E1133
+    Epqrs[2][0] = Epqrs[2][1] = E3311
+    Epqrs[5][5] = E1212
+    Epqrs[4][4] = Epqrs[3][3] = E1313
     
-    return e
+    Epqsr = np.zeros((6,6))
+    Epqsr[0][0] = Epqsr[1][1] = E1111
+    Epqsr[2][2] = E3333
+    Epqsr[0][1] = Epqsr[1][0] = E1122
+    Epqsr[0][2] = Epqsr[1][2] = E1133
+    Epqsr[2][0] = Epqsr[2][1] = E3311
+#    Epqsr[5][5] = E1212 seria E1221
+#    Epqsr[4][4] = Epqsr[3][3] = E1313 seria E1331
+    
+    Eqprs = np.zeros((6,6))
+    Eqprs[0][0] = Eqprs[1][1] = E1111
+    Eqprs[2][2] = E3333
+    Eqprs[0][1] = Eqprs[1][0] = E1122
+    Eqprs[0][2] = Eqprs[1][2] = E1133
+    Eqprs[2][0] = Eqprs[2][1] = E3311
+#    Eqpsr[5][5] = E1212 seria E2112
+#    Eqpsr[4][4] = Eqpsr[3][3] = E1313 seria E3113
+    
+    Eqpsr = np.zeros((6,6))
+    Eqpsr[0][0] = Eqpsr[1][1] = E1111
+    Eqpsr[2][2] = E3333
+    Eqpsr[0][1] = Eqpsr[1][0] = E1122
+    Eqpsr[0][2] = Eqpsr[1][2] = E1133
+    Eqpsr[2][0] = Eqpsr[2][1] = E3311
+#    Eqpsr[5][5] = E1212 seria E2121
+#    Eqpsr[4][4] = Eqpsr[3][3] = E1313 seria E3131
+    
+    return [Epqrs, Epqsr, Eqprs, Eqpsr]
     
 def TensorG (C0, alpha, v):
     #alpha eh razao de aspecto menor 1
 #    S0 = C0**-1
+#    if alpha == 1:
+#        q = 2/3
     alphaquad = alpha**2
+#    C0 = KelvintoVoigt(C0)
     S0 = np.linalg.inv(C0)
-    q = ((alpha)/((1.-alphaquad)**1.5))*(np.arccos(alpha) - alpha*((1.-alphaquad)**0.5))
+    q = ((alpha)/((1.-alphaquad)**(1.5)))*(np.arccos(alpha) - alpha*((1.-alphaquad)**0.5))
     
     S1111 = ((3.*alphaquad)/(8.*(1.-v)*(alphaquad-1.))) + (1./(4*(1-v))) * (1.-2.*v-(9./(4*(alphaquad-1.))))*q
     S3333 = (1./(2.*(1.-v)))*(1.-2.*v + (3.*alphaquad-1.)/(alphaquad-1.)-(1.-2.*v+(3.*alphaquad)/(alphaquad-1.))*q)
@@ -428,6 +487,7 @@ def TensorG (C0, alpha, v):
     Sr[0][2][0][2] = Sr[1][2][1][2] = S1313
     
     Sr_ = TensortoKelvin(Sr)
+#    Sr_ = KelvintoVoigt(Sr_)
 #    print '\ns111\n', S1111, S3333, S1122, S1133, S3311, S1212 ,S1313
     Gr = -np.dot(Sr_,S0)
     return Gr
@@ -439,8 +499,8 @@ def Tma (C0,  Nr, tsat=0, omega = 30.*np.pi , tal=0.00001, kfl = 30., visc = 0.0
     poros = Nr[1]
     Cr = Nr[2]
     Gr = Nr[3]
-    I4_ = Id4()
-    I4 = Kelvin(I4_)
+#    I4_ = Id4()
+#    I4 = Kelvin(I4_)
     S0 = np.linalg.inv(C0)
 #    for i in range (len(C0)):
 #        for j in range(len(C0[0])):
@@ -486,20 +546,19 @@ def Kdry (Gr, C0, S0):
 #    print 'printtt \n', Gr, '\n\n',C0, '\n\n', np.matrix(Gr)*np.matrix(C0), '\n\n', kdry
     return kdry
     
-def Gamma(kf, kdry, S0):
+def Gamma(kfl, kdry, S0):
 #    print 'printtt', kfl, kdry, S0
-    kfl = kf[0][0]
     temp1 = kdry - S0
     temp1uuvv = Muv(temp1)
 #    gamma = 1. + np.dot(kfl,temp1)
     gamma = 1. + kfl*temp1uuvv
     return gamma
         
-def Theta (kf, S0, omega, visc, poros, gamma, tal, kdry, perm, ku=None, kv=None):
+def Theta (kfl, S0, omega, visc, poros, gamma, tal, kdry, ku, kv, perm):
 #    ku=omega/2650
 #    kv=omega/2650    
-    ku=np.array([omega/2650.,0,0])    # ???
-    kv=np.array([0, omega/2650.,0])   # ???
+#    ku=np.array([omega/2650.,0,0])    # ???
+#    kv=np.array([0, omega/2650.,0])   # ???
 #    iotg = omega*tal*gamma*np.complex(0,1)+1
 #    print 'iotg \n', iotg
    # print 'prin', np.outer(np.outer(ku,kv), perm), '\n\n print', np.outer(np.identity(3),np.identity(3))
@@ -510,7 +569,7 @@ def Theta (kf, S0, omega, visc, poros, gamma, tal, kdry, perm, ku=None, kv=None)
 #    print '\n\n agora', np.dot(kfl,((poros*kdry)/(1.+ np.complex(0,1)*omega*tal*gamma))) - np.complex(0,1)*np.dot(kfl,kuvperm)/(omega*visc), '\ntheta'
 #    theta = np.linalg.inv(np.dot(kfl,((1. - np.dot(kfl,S0))*((poros)/(1. + np.complex(0,1)*omega*tal*gamma)) + 
 #    np.dot(kfl,((poros*kdry)/(1.+ np.complex(0,1)*omega*tal*gamma))) - np.complex(0,1)*np.dot(kfl,kuvperm)/(omega*visc))))
-    kfl = kf[0][0]
+#    kfl = kf[0][0]
     Suuvv = Muv(S0)
     Kduuvv = Muv(kdry)
 #    temp1 = 1. - np.dot(kfl,S0)
@@ -662,7 +721,9 @@ def DeltaC (ci, c0):
     return ci - c0
 
 def T_r (deltaC, Gr):
-    I4 = TensortoKelvin(Id4())
+    I4 = (np.identity(6))
+#    I4 = KelvintoVoigt(np.identity(6))
+#    print Id4(),'id4'
     temp = I4 - np.dot(Gr, deltaC)
     invtemp = np.linalg.inv(temp)   
     tr = np.dot(deltaC,invtemp)
@@ -674,62 +735,56 @@ def T_r (deltaC, Gr):
     
 def T1 (vr, tr):
     T1 = np.dot(vr,tr)
+#    print 't', vr, tr[0][0], T1[0][0]
     return T1
         
-def T2 (T1, grs, vs, ts, I4):
+def T2 (T1, gdrs, vs, ts, I4):
     temp1 = T1
-    temp2 = np.dot(temp1,grs)
+    temp2 = np.dot(temp1,gdrs)
     temp3 = np.dot(temp2, ts)
     temp4 = np.dot(temp3, vs)
     return temp4
     
-def IncludeT (C0, C1, G1, alpha, phi_):  #ni = number of inclusions
-#    C0 = mineral1[0] 
-#    rhom = mineral1[1]
-#    C1 = fluido[0]
-#    rhoi = fluido[1]
-#    poisi = fluido[2]
-    kfl = C1
+def IncludeT (C0, Cr, Gr, poison, alpha, vr):  #ni = number of inclusions
+    kfl = Cr[0][0]
 #    S0 = np.linalg.inv(C0)
-    omega = np.pi
-    tal = 0.000001
+    
+    freq = 1000000
+    omega = 2*np.pi*freq
+    vpm = 5.85
+    ku = np.array([omega/vpm,0,0]) 
+#    ku = omega/vpm
+    kv = np.array([0,omega/vpm,0]) 
+    tal = 0.0000001
     visc = 0.001
-#    step = 0.001
     perm = np.identity(3)
-#    phi_ = curphi
-#    
-#    
-#    phi_ += step
-#    dC = DeltaC(C1, C0)
-#    G1 = TensorG(C0, alpha, poisi)
-#    tdry = T_r(dC, G1)
-#    kdry = Kdry (G1, C0, S0)
-#    gamma = Gamma(kfl, kdry, S0)
-#    theta = Theta(kfl, S0, omega, visc, phi_, gamma, tal, kdry, perm)
-#    zeta = Zeta(tdry, S0, phi_, omega, tal, gamma)
-#    qui = Qui(tdry, S0)
-#    temp1 = np.dot(theta, zeta)
-#    temp2 = np.complex(0,1)*omega*tal*np.dot(kfl, qui)
-#    tsat = tdry + (temp1 + temp2)/(1.+np.complex(0,1)*omega*tal*gamma)
-#    print tsat
+    
     dry = Dry()
-    dC_ = DeltaC(dry[0], C0)
+    Cdry = dry[0]
+    dC_dry = DeltaC(Cdry, C0)
+    G_dry = TensorG(C0, alpha, poison) 
+    
     S0 = np.linalg.inv(C0)
 #    G1_ = TensorG(C0, alpha, poisi)
-    tdry = T_r(dC_, G1)
+    tdry = T_r(dC_dry, G_dry)
     
-    kdry = Kdry (G1, C0, S0)
+    kdry = Kdry (G_dry, C0, S0)
+    
     gamma = Gamma(kfl, kdry, S0)
-    theta = Theta(kfl, S0, omega, visc, phi_, gamma, tal, kdry, perm)
+    
+    theta = Theta(kfl, S0, omega, visc, vr, gamma, tal, kdry, ku, kv, perm)
 #    print theta
-    zeta = Zeta(tdry, S0, phi_, omega, tal, gamma)
-    qui = Qui(tdry, S0)
+    zeta = Zeta(tdry, S0, vr, omega, tal, gamma)
+    qui = Qui(tdry, S0);
     temp1 = np.dot(theta, zeta)
     temp2 = np.complex(0,1)*omega*tal*np.dot(kfl, qui)
-    tsat = tdry + (temp1 + temp2)/(1.+np.complex(0,1)*omega*tal*gamma)
+#    print 't', theta
+    temp3 = 1.+np.complex(0,1)*omega*tal*gamma
+#    print 't', temp1, '\n', temp2, '\n', temp3
+    tsat = tdry + (temp1 + temp2)/(temp3)
     return tsat
     
-def IncludeCom (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of inclusions
+def IncludeDem (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of inclusions
     fluido2 = Water()
 #    fluido2 = Dry()
     C0 = mineral1[0] 
@@ -763,7 +818,7 @@ def IncludeCom (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of 
         C0 = Ct_
         ts = tr
         vs = phi_
-#        print i, phi[0]
+        
         phi[i] = phi_
         
         rho[i] = (1.0 - phi[i])*rhom + phi[i]*rhoi
@@ -776,12 +831,14 @@ def IncludeCom (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of 
 #    print Gct, Kct,poisct, Ct[-1]
     return [Ct, rho, phi, poisct]
 
-def Ctotal (C0, tr, vr, gr, ts, vs, gd):
+def Ctotal (C0, tr, vr, gr, ts=0, vs=0, gd=0):
+    if vr == 0:
+        print "vr  = 0"
 #    (C0, tr, step, G1, ts, vs)
 #    I4_ = Id4()    
 #    I4 = Kelvin(I4_)
+#    I4 = KelvintoVoigt(np.identity(6))
     I4 = np.identity(6)
-#    I4 = VoigttoKelvin(I4_)
     T1_ = T1(vr, tr)
     T2_ = T2(T1_, gd, vs, ts, I4)    
 #    print 'tt\n', T1_,'\n',T2_
@@ -790,72 +847,12 @@ def Ctotal (C0, tr, vr, gr, ts, vs, gd):
     temp2 = I4 + temp1
     invtemp2 = np.linalg.inv(temp2)
     temp3 = np.dot(T1_,invtemp2)
-    Ct = C0 + temp3
+    Ct = C0 + temp3#*2.6
+#    print temp3[0][0]
 #    print 'tt\n', Ct[0][0], C0[0][0], temp3[0][0], T1_[0][0]
     return Ct
 
-def IncludeIso (mineral1, mineral2, alpha, phimax, curphi, ni):  #ni = number of inclusions
-#    print 'kk', mineral1,'\n', mineral2, '\n', alpha, phimax, curphi, ni
-#    phi = np.zeros(ni)       
-    C0 = mineral1[0] 
-    rhom = mineral1[1]
-    poisi = mineral1[2]
-    Cr = mineral2[0]
-    rhoi = mineral2[1]
-    step = phimax/ni
-    phi_ = curphi
-    ts = np.zeros((6,6))
-    vs = np.zeros((6,6))
-    phi = np.empty(ni)
-    rho = np.empty(ni)
-#    Vp = np.empty(ni)
-#    Vs = np.empty(ni)
-    Ct = np.empty((ni,6,6))
-    
-#    phimax = 0.4
-#    dC = DeltaC(C1, C0)
-#    G1 = TensorG(C0, alpha, poisi)
-#    tr = T_r (dC , G1)     
-#    Ct = Ctotal (C0, tr, phimax, G1, ts, vs)
-#    rho = (1.0 - phimax)*rhom + phimax*rhoi
-    for i in range (ni):
-##        curphi = phi[i]
-##        print step
-#        print phi_
-        Gr = TensorG(C0, alpha, poisi) #nao recalculo poison
-#        print 'gr', Gr[0][0]
-        dC = DeltaC(Cr, C0)
-        tr = T_r (dC , Gr)        
-        alphad = alpha*step
-        Gd = TensorG(C0, alphad, poisi)
-##        print tr
-        Ct_ = Ctotal (C0, tr, step, Gr, ts, vs, Gd)
-        Ct[i] = Ct_
-        C0 = Ct_
-#        print C0[0][0]
-        ts = tr
-        vs = phi_
-#        print phi_, Ct_[0][0]#,'\n'
-        phi_ += step
-        phi[i] = phi_
-#        
-        rho[i] = (1.0 - phi[i])*rhom + phi[i]*rhoi
-        
-#        Vp[i] = ((Ct[i][0][0]/rho)**-0.5)**-1
-#        Vs[i] = ((Ct[i][3][3]/rho)**-0.5)**-1
-#    print Ct[3][3]
-    Gct = (Ct[-1][3][3]/2)
-#    Kct = Ct[-1][0][0] - 4.*Gct/3.
-    Kct = Ct[-1][0][0] - 4.*Gct/3. #utilizando regra de kelvin de /2
-    
-#    Gct = Ct[3][3]*0.5
-##    Kct = Ct[0][0] - 4.*Gct/3.
-#    Kct = Ct[0][0] - 2.*Gct/3. #utilizando regra de kelvin de /2
-    
-    
-    poisct = (3.*Kct-2.*Gct)/(2.*(3.*Kct+Gct))
-#    print Gct, Kct,poisct, Ct[-1]
-    return [Ct, rho, phi, poisct]
+
 
 #def OPA (y, v, Cr, alpha, poisi):
 #    Cdem = y
@@ -893,6 +890,131 @@ def IncludeIso (mineral1, mineral2, alpha, phimax, curphi, ni):  #ni = number of
 #    from scipy.integrate import odeint
 #    sol = odeint(OPA, y0, v, args=(Cr, alpha, poisi))
 #    print sol
+    
+#def IncludeTest (mineral1, mineral2, alpha, phimax, curphi, ni): 
+#    C0 = mineral1[0] 
+#    rhom = mineral1[1]
+#    poisi = mineral1[2]
+#    Cr = mineral2[0]
+#    rhoi = mineral2[1]
+#    step = phimax/ni
+#    phi_ = curphi
+#    ts = np.zeros((6,6))
+#    vs = np.zeros((6,6))
+#    phi = np.empty(ni)
+#    rho = np.empty(ni)
+#    poison = np.empty(ni)
+#    poison[0] = poisi
+#    Ct = np.empty((ni,6,6))
+#    for i in range (ni):
+#        if i==0: 
+#            poison[i] = poisi
+#        else:
+#            Gct = (C0[3][3]/2)
+#            Kct = C0[0][0] - 4.*Gct/3        
+#            poisi = (3.*Kct-2.*Gct)/(2.*(3.*Kct+Gct))
+#            poison[i] = poisi
+#        Gr = TensorGreen(alpha, C0)
+#        dC = DeltaC(Cr, C0)
+#        tr = T_r (dC , Gr)        
+#        alphad = alpha*step
+#        Gd = TensorGreen(alphad, C0)
+#        Ct_ = Ctotal (C0, tr, step, Gr, ts, vs, Gd)
+#        Ct[i] = Ct_
+#        C0 = Ct_
+#        ts = tr
+#        vs = phi_
+#        phi_ += step
+#        phi[i] = phi_
+##        
+#        rho[i] = (1.0 - phi[i])*rhom + phi[i]*rhoi
+#    return [Ct, rho, phi, poison]
+
+def CSingle (C0, tr, vr, gr):
+    I4 = np.identity(6)
+    T1_ = T1(vr, tr)
+    T2_ = I4
+    invT1 = np.linalg.inv(T1_)
+    temp1 = np.dot(invT1, T2_)
+    temp2 = I4 + temp1 #ou invT1
+    invtemp2 = np.linalg.inv(temp2)
+    temp3 = np.dot(T1_,invtemp2)
+    Ct = C0 + temp3
+#    print temp3
+    return Ct
+
+def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
+#    gr_fam = [fam1, fam2]
+#    fam# = [water, alpha, phi]
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Cr_i = []
+    rho_i = []
+    alpha = []
+    phi = []
+    for fam in gr_fam:
+        Cr_i.append(fam[0][0])
+        rho_i.append(fam[0][1])
+        alpha.append(fam[1])
+        phi.append(fam[2])
+        
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]
+    
+    poison = poisi
+    for i in range(len(gr_fam)):
+        vr = phi[i]
+        Gr = TensorG(C0, alpha, poison) 
+        dC = DeltaC(Cr, C0)
+        if cavity == 0: 
+            tr = T_r (dC , Gr)
+        else: 
+            tr = IncludeT (C0, Cr, Gr, poison, alpha, vr)
+        Ct_ = CSingle (C0, tr, vr, Gr)
+        rho_ = (1.0 - vr)*rhom + vr*rhoi
+        
+        lct.append(Ct_)
+        lrho.append(rho_)
+        lphi.append(vr)
+    return [lct, lrho, lphi, lpoison]
+
+def IncludeSingle (matrix, sfam, cavity):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    inclusion = sfam[0]
+    alpha = sfam[1]
+    phi_ = sfam[2]
+    Cr = inclusion[0]
+    rhoi = inclusion[1]
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]
+    
+    poison = poisi
+    vr = phi_
+    Gr = TensorG(C0, alpha, poison) 
+    dC = DeltaC(Cr, C0)
+    if cavity == 0: 
+        tr = T_r (dC , Gr)
+#        print 'tr1', tr
+    else: 
+        tr = IncludeT (C0, Cr, Gr, poison, alpha, vr)
+#        print tr
+#        print 'tr2', tr
+    Ct_ = CSingle (C0, tr, vr, Gr)
+    rho_ = (1.0 - vr)*rhom + vr*rhoi
+    
+    lct.append(Ct_)
+    lrho.append(rho_)
+    lphi.append(vr)
+#    print Ct_
+#    lpoison.append(poisi)
+    return [lct, lrho, lphi, lpoison]
 
 def main3():
 #    Vpm = 5.85 # km/s
@@ -914,7 +1036,9 @@ def main3():
 #    clay = Clay()
     dry = Dry()
     water = Water()
-    ni = 200
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 0
+    ni = 2
 #    C0 = quartzo[0]
 #    Ci = calcita[0]
     alphai = 0.3
@@ -923,7 +1047,8 @@ def main3():
 #    print 'ccal',Gi
     
     porosi = 0.
-    porosf = 0.4
+    porosf = 0.3
+#    plist = [0.1, 0.2, 0.3]#, 0.4, 0.42, 0.44, 0.45, 0.46, 0.47]
 #    Gi = TensorG(C0, alphai, poisi)
 #    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
 #    G2 = TensorG(Ct[-1], alphai, poisi)
@@ -932,6 +1057,7 @@ def main3():
 #    print 'ct\n', Ct[-1]
     Vp = np.empty(ni)
     Vs = np.empty(ni)
+    Qp = np.empty(ni)
     ks= np.empty(ni)
     kk= np.empty(ni)
     ksg= np.empty(ni)
@@ -943,44 +1069,61 @@ def main3():
 #    elemento[1] = element[1][-1]
 #    elemento[2] = element[2][-1]
 #    print water,elemento
-    #fam = [element, phi, alpha]
-#    fam1 = [water, 0.4, 0.3]
-#    fam = [fam1]
+#    sfam = [water, alpha, phi]
+    fam = [water, 0.3, 0.4]
+    fam1 = [water, 0.3, 0.1]
+    fam2 = [water, 0.3, 0.2]
+    gr_fam = [fam1]
+#    gr_fam = [fam1, fam2]
+#    phi_fam = [0.1, 0.2]
 #    print water
-    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
-#    [Ct, rho, phi, poisct] = IncludeCom (calcita, water, alphai, porosf, porosi, ni)
+#    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
+    print 'len', len(gr_fam)
+    if len(gr_fam) == 1:
+    #    for inc in gr_fam:
+    #        [Ct, rho, phi, poisct] = IncludeSingle (calcita, water, alphai, porosf, cavity)
+        [Ct, rho, phi, poisct] = IncludeSingle (calcita, fam, cavity)
+    else:
+        [Ct, rho, phi, poisct] = IncludeFam (calcita, gr_fam, cavity)
 
 #    print VoigttoKelvin(Ct[-1])!
     for i in range(len(phi)):
 ##        print i
 ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
 #        
+#        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+#        g[i] = Ct[i][3][3]/2
+#        g[i] = Ct[i][3][3]
+#        ks[i] = Ct[i][0][0] - 4./3.*g[i]
+#        ksg[i] = Ct[i][0][0]
+        print Ct[i][0][0]
+        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
         
-        g[i] = Ct[i][3][3]/2
-        ks[i] = Ct[i][0][0] - 4./3.*g[i]
-        ksg[i] = Ct[i][0][0]
-        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]
-##        print ((Ct[i][0][0]/rho[i])**-0.5)**-1., (Ct[i][0][0]/rho[i]), Ct[i][0][0], k, rho[i]        
-#        Vp[i] = ((Ct[i][0][0]/rho[i])**0.5)
-#        Vs[i] = ((Ct[i][3][3]/(2.*rho[i]))**0.5)
+        Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+        Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**0.5)
+#        Qp[i] = ((Ct[i][0][0]).real)/((Ct[i][0][0]).img)
+#    print ks, rho, g, '\n', Ct[0], '\n\n', Ct[1]
     
 #    print rho
         
     import matplotlib.pyplot as plt
 #    print k
-#    plt.plot(phi, ksg, 'b')
-#    plt.plot(phi, ks, 'b')
+#    plt.plot(phi, ksg, 'r')
+#    plt.plot(phi, ks, 'r')
 #    plt.plot(phi, kk, 'y')
-    plt.plot(phi, g, 'b')
-#    plt.plot(phi, rho, 'b')
+#    plt.plot(phi, g, 'r')
+#    plt.plot(phi, rho, 'r')
 #    plt.grid()
 #    plt.show()
-#    plt.plot(phi, Vp)
+    plt.plot(phi, Vp, 'r')
 #    plt.show()
-#    plt.plot(phi, Vs)
+#    plt.plot(phi, Qp, 'r')
 #    plt.show()
 if __name__ == '__main__':
     main3()
 #    main4()
     main1()
+#    i4 = Id4()
+#    print KelvintoVoigt(VoigttoKelvin(TensortoVoigt(i4)))
+    
     #rho ok, G ok, K nao ok
