@@ -49,7 +49,9 @@ def KG(Km, Gm, Ki, Gi, ci, theta, f):
 
 def DEM(Km, Gm, Ki, Gi, alphai, phii, curphi=0.0, minalphaphiratio=100):
     ni = np.ceil(minalphaphiratio*phii/alphai).astype(np.int)
+    ni=[100]
     dphii = phii/ni
+#    print "ni...", ni
     indexes = np.repeat(np.arange(len(ni)), ni)
 #    print dphii
     np.random.shuffle(indexes)
@@ -102,7 +104,7 @@ def main1():
     rhom = 2.65 # g/cm3
     Vpf = 1.6 # km/s
     rhof = 1.1 # g/cm3
-    phimax = 0.4
+    phimax = 0.3
     
 #    Gm = Vsm*Vsm*rhom # GPa
 #    Km = Vpm*Vpm*rhom - 4.0*Gm/3.0 # GPa
@@ -138,8 +140,9 @@ def main1():
 #    stiff8 = 0.8*stiff + 0.2*ref
 #    alphamix = [ref, crack, stiff, crack2, crack4, crack6, crack8, stiff2, stiff4, stiff6, stiff8]
 #    for alpha in alphamix:#[0.15, 0.02, 0.8]:  #[0.01, 0.05, 0.1, 0.15] -- 15=ref, 02 = crack, 80=stiff
-    
-    for alpha in [0.3]:
+#    K = Km
+#    G = Gm
+    for alpha in [0.99]:
 #    for alpha in [0.01, 0.1, 0.5, 0.9]:
 #    for p in [0.2, 0.4, 0.6, 0.8,1]:
 #        for alpha in [0.15, 0.02, 0.8]:
@@ -157,12 +160,15 @@ def main1():
 
         rho = (1.0 - phi)*rhom + phi*rhof
         Ks = Gassmann.Ks(K, Km, Kf, phi)
-        
+        Ks = np.insert(Ks,0,Km)
+        phi = np.insert(phi,0,0.)
+        G = np.insert(G,0,Gm)
+        rho = np.insert(rho,0,rhom)
         Vp = np.sqrt((Ks + 4.0*G/3.0)/rho)
         Vs = np.sqrt(G/rho)
         k_reuss = (phi/Kf + (1 - phi)/Km)**(-1)
         k_voigt = phi*Kf+ (1 - phi)*Km
-        print 'mai1', rho[-1]
+        print 'mai1', rho[-1], Ks[0], phi[0]
 #            vp_ref.append(Vp)
 #        
 #            phi = p*phic + (1-p)*phir
@@ -176,7 +182,7 @@ def main1():
 #            plt.plot(phi, Vp, 'b--')
 #        else:
 #            plt.plot(phi, Vp, 'b-.')
-        plt.plot(phi, Vp, 'b') # plot vp
+#        plt.plot(phi, Vp, 'b') # plot vp
 #        plt.plot(phi, Vs, 'b')
 #        plt.plot(phi, rho, 'g')
 #        plt.plot(phi, Ks, 'b')
@@ -187,7 +193,7 @@ def main1():
 #                print (Ks[i] + 4.0*G[i]/3.0)-(Ks[i-1] + 4.0*G[i-1]/3.0)
         #(Ks + 4.0*G/3.0)
 #        plt.plot(phi, k_reuss, 'g')
-#        plt.plot(phi, (Ks + 4.0*G/3.0), 'b') # plot c11
+        plt.plot(phi, (Ks + 4.0*G/3.0), 'b') # plot c11
 #        plt.plot(phi, k_voigt, 'g')
     
     plt.grid()
@@ -1018,14 +1024,14 @@ def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
         alphad = alpha*vr
         gdrs = TensorG(C0, alphad, poison) 
         C1 = C1+T1(vr,tr)
-#        print i
+        print i
         for j in range (len(gr_fam)):
-            if j > i:
-#                print 'iii', len(gr_fam),j
-                vs = phi_i[i+1]
-                Cs = Cr_i[i+1]
+            if j != i:
+                print 'iii', len(gr_fam),j
+                vs = phi_i[i]
+                Cs = Cr_i[i]
                 dCs = DeltaC(Cs, C0)
-                alphas = alpha_i[i+1]
+                alphas = alpha_i[i]
                 Gs = TensorG(C0, alphas, poison) 
                 ts = T_r (dCs , Gs)
                 C2 = C2+T2(vr, tr, gdrs, vs, ts)
@@ -1033,6 +1039,7 @@ def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
 #        vf = vf+vr
 #        print 'vvff', vf
         lrhof.append(vr*rhoi)
+#    C2 = np.identity(6)
     Ct_ = Ct (C0, C1, C2)
     for i in range(len(lrhof)):
         rho_ = (1.0 - vf)*rhom + vf*rhoi
@@ -1165,13 +1172,13 @@ def main3():
 #    ni = 4
 #    C0 = quartzo[0]
 #    Ci = calcita[0]
-    alphai = 0.3
+#    alphai = 0.3
 #    poisi = calcita[2]
     
 #    print 'ccal',Gi
     
-    porosi = 0.
-    porosf = 0.3
+#    porosi = 0.
+#    porosf = 0.3
 #    plist = [0.1, 0.2, 0.3]#, 0.4, 0.42, 0.44, 0.45, 0.46, 0.47]
 #    Gi = TensorG(C0, alphai, poisi)
 #    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
@@ -1190,13 +1197,13 @@ def main3():
 #    sfam = [water, alpha, phi]
 #    fam = [water, 0.3, 0.4]
     
-    fam1 = [water, 0.1, 0.2]
-    fam2 = [water, 0.3, 0.1]
-    fam3 = [water, 0.3, 0.1]
-    fam4 = [water, 0.3, 0.1]
-    gr_fam = [fam1, fam2, fam3, fam4]
-    gr_fam = [fam1]
-    for i in range(1): gr_fam.append(fam1)
+    fam1 = [water, 0.99, 0.1]
+    fam2 = [water, 0.99, 0.1]
+    fam3 = [water, 0.99, 0.1]
+    fam4 = [water, 0.4, 0.1]
+    gr_fam = [fam1, fam2, fam3]
+#    gr_fam = [fam1]
+#    for i in range(7): gr_fam.append(fam1)
 #    gr_fam = [fam1, fam2]
 #    phi_fam = [0.1, 0.2]
 #    print water
@@ -1229,8 +1236,8 @@ def main3():
 #        g[i] = Ct[i][3][3]
 #        ks[i] = Ct[i][0][0] - 4./3.*g[i]
         ksg[i] = Ct[i][0][0]
-        print Ct[i][0][0], phi, rho[i]
-        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+        print Ct[i][0][0], phi, rho[i]    
+#        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
         
         Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
         Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**0.5)
@@ -1241,15 +1248,15 @@ def main3():
         
     import matplotlib.pyplot as plt
 #    print k
-#    plt.plot(phi, ksg, 'r') # plot c11
+    plt.plot(phi, ksg, 'r') # plot c11
 #    plt.plot(phi, ks, 'r')
 #    plt.plot(phi, kk, 'y')
 #    plt.plot(phi, g, 'r')
 #    plt.plot(phi, rho, 'r')
 #    plt.grid()
 #    plt.show()
-    print 'plot', phi, Vp
-    plt.plot(phi, Vp, 'r') # plot vp
+    print 'plot', phi, kk
+#    plt.plot(phi, Vp, 'r') # plot vp
 #    plt.show()
 #    plt.plot(phi, Qp, 'r')
 #    plt.show()
