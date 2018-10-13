@@ -3,6 +3,41 @@ From Berryman 1980
 """
 
 import numpy as np
+shear = []
+bulk=[]
+poros=[]
+aspect=[]
+vvp=[]
+vvs=[]
+#    arqshear = open("shear.txt",'r')
+#    tshear = arqshear.readlines()
+#    for i in range(len(tshear)):
+#        shear.append(float(tshear[i].strip()))
+    
+arqbulk = open("bulk.txt",'r')
+tbulk = arqbulk.readlines()
+for i in range(len(tbulk)):
+    bulk.append(float(tbulk[i].strip()))
+
+arqaspect = open("aspect_irineu.txt",'r')
+taspect = arqaspect.readlines()
+for i in range(len(taspect)):
+    aspect.append(float(taspect[i].strip()))
+    
+arqporos = open("poros_irineu.txt",'r')
+tporos = arqporos.readlines()
+for i in range(len(tporos)):
+    poros.append(float(tporos[i].strip()))
+
+arqvp = open("vp_irineu.txt",'r')
+tvp = arqvp.readlines()
+for i in range(len(tvp)):
+    vvp.append(float(tvp[i].strip()))
+    
+arqvs = open("vs_irineu.txt",'r')
+tvs = arqvs.readlines()
+for i in range(len(tvs)):
+    vvs.append(float(tvs[i].strip()))
 
 def theta(alpha):
     return alpha*(np.arccos(alpha) - alpha*np.sqrt(1.0 - alpha*alpha))/(1.0 - alpha*alpha)**(3.0/2.0)
@@ -104,7 +139,7 @@ def main1():
     rhom = 2.65 # g/cm3
     Vpf = 1.6 # km/s
     rhof = 1.1 # g/cm3
-    phimax = 0.3
+    phimax = 0.6
     
 #    Gm = Vsm*Vsm*rhom # GPa
 #    Km = Vpm*Vpm*rhom - 4.0*Gm/3.0 # GPa
@@ -142,8 +177,10 @@ def main1():
 #    for alpha in alphamix:#[0.15, 0.02, 0.8]:  #[0.01, 0.05, 0.1, 0.15] -- 15=ref, 02 = crack, 80=stiff
 #    K = Km
 #    G = Gm
+#    plt.figure()
 #    for alpha in [0.05, 0.1, 0.15, 0.2]:
-    for alpha in [0.1,0.2]:
+    for alpha in [0.01, 0.1, 0.99]:
+#    for alpha in aspect:
 #    for p in [0.2, 0.4, 0.6, 0.8,1]:
 #        for alpha in [0.15, 0.02, 0.8]:
 #        alphai = alpha
@@ -184,55 +221,36 @@ def main1():
 #            plt.plot(phi, Vp, 'b--')
 #        else:
 #            plt.plot(phi, Vp, 'b-.')
-#        plt.plot(phi, Vp, 'b') # plot vp
+        plt.plot(phi, Vp, 'b') # plot vp
 #        plt.plot(phi, Vs, 'b')
 #        plt.plot(phi, rho, 'g')
+#        plt.subplot(211)
 #        plt.plot(phi, Ks, 'b')
+#        plt.grid()
 #        print Ks
+#        plt.subplot(212)
 #        plt.plot(phi, G, 'g')
 #        for i in range (len(Ks)):
 #            if i !=0:
 #                print (Ks[i] + 4.0*G[i]/3.0)-(Ks[i-1] + 4.0*G[i-1]/3.0)
         #(Ks + 4.0*G/3.0)
 #        plt.plot(phi, k_reuss, 'g')
-        plt.plot(phi, (Ks + 4.0*G/3.0), 'b') # plot c11
+#        plt.plot(phi, (Ks + 4.0*G/3.0), 'b') # plot c11
 #        plt.plot(phi, k_voigt, 'g')
-    shear = []
-    bulk=[]
-    poros=[]
-    vvp=[]
-    arqshear = open("shear.txt",'r')
-    tshear = arqshear.readlines()
-    for i in range(len(tshear)):
-        shear.append(float(tshear[i].strip()))
-        
-    arqbulk = open("bulk.txt",'r')
-    tbulk = arqbulk.readlines()
-    for i in range(len(tbulk)):
-        bulk.append(float(tbulk[i].strip()))
-        
-    arqporos = open("poros.txt",'r')
-    tporos = arqporos.readlines()
-    for i in range(len(tporos)):
-        poros.append(float(tporos[i].strip()))
-    
-    arqvp = open("vp.txt",'r')
-    tvp = arqvp.readlines()
-    for i in range(len(tvp)):
-        vvp.append(float(tvp[i].strip()))
+
         
     for i in range(len(poros)):
         
-        if bulk[i] !=0.: 
-#            print 'iii', i
+        if bulk[i] ==0.: 
+            print 'iii', i
 #            poros.pop(i)
 #            bulk.pop(i)
 #            cont = cont+1
 #            print 'len',len(poros), len(bulk), cont
-#        else: 
+        else: 
 #            print '\n',i
 #            plt.plot(poros[i],vvp[i],'o')
-            plt.plot(poros[i],bulk[i],'o')
+            plt.plot(poros[i],vvp[i],'o')
     plt.grid()
     plt.show()
 
@@ -1069,8 +1087,8 @@ def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
         
         for j in range (len(gr_fam)):
             
-            if j != i:
-#            if j > i:
+#            if j != i:
+            if j > i:
                 print 'iii', len(gr_fam),i, j
                 vs = phi_i[j]
                 Cs = Cr_i[j]
@@ -1197,6 +1215,7 @@ def IncludeDual (matrix, rfam, sfam, cavity):  #ni = number of inclusions
     return [lct, lrho, lphi, lpoison]
 
 def main3():
+    import matplotlib.pyplot as plt
 #    Vpm = 5.85 # km/s
 #    Vsm = 3.9 # km/s
 #    rhom = 2.650 # g/cm3
@@ -1246,16 +1265,16 @@ def main3():
 #    sfam = [water, alpha, phi]
 #    fam = [water, 0.3, 0.4]
 #    for a in [0.08, 0.1, 0.15, 0.2]:
-    for a in [0.1, 0.2]:
-        fam1 = [dry, a, 0.20]
-        fam2 = [dry, a, 0.05]
+    for a in [0.1, 0.2]:#, 0.5]:
+        fam1 = [dry, a, 0.30]
+        fam2 = [dry, a, 0.10]
         fam3 = [dry, a, 0.05]
         fam4 = [dry, a, 0.05]
         fam5 = [dry, a, 0.05]
         fam6 = [dry, a, 0.05]
         gr_fam = [fam1, fam2]#, fam3, fam4, fam5]
 #        fam1 = [dry, a, 0.25]
-#        gr_fam = [fam1]
+        gr_fam = [fam1]
     #    for i in range(7): gr_fam.append(fam1)
     #    gr_fam = [fam1, fam2]
     #    phi_fam = [0.1, 0.2]
@@ -1268,8 +1287,8 @@ def main3():
             [Ct, rho, phi, poisct] = IncludeSingle (calcita, gr_fam[0], cavity)
 #            print 'n'
         else:
-            [Ct, rho, phi, poisct] = IncludeDual (calcita, fam1, fam2, cavity)
-#            [Ct, rho, phi, poisct] = IncludeFam (calcita, gr_fam, cavity)
+#            [Ct, rho, phi, poisct] = IncludeDual (calcita, fam1, fam2, cavity)
+            [Ct, rho, phi, poisct] = IncludeFam (calcita, gr_fam, cavity)
     
     #    print VoigttoKelvin(Ct[-1])!
         ni = len(phi)
@@ -1292,7 +1311,7 @@ def main3():
             ksg[i] = Ct[i][0][0]
 #            print Ct[i][0][0], phi, rho[i]    
     #        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
-            
+            print 'vppp', Ct[i][0][0]/rho[i], poros
             Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
             Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**0.5)
     #        Qp[i] = ((Ct[i][0][0]).real)/((Ct[i][0][0]).img)
@@ -1300,24 +1319,36 @@ def main3():
         
     #    print rho
             
-        import matplotlib.pyplot as plt
+        
     #    print k
-        plt.plot(phi, ksg, 'r') # plot c11
+#        plt.subplot(211)
+#        plt.plot(phi, ksg, 'r') # plot c11
 #        plt.plot(phi, ks, 'r')
 #    plt.plot(phi, kk, 'y')
 #    plt.plot(phi, g, 'r')
 #    plt.plot(phi, rho, 'r')
 #    plt.grid()
 #    plt.show()
-    print 'plot', phi, kk
-#    plt.plot(phi, Vp, 'r') # plot vp
+        print 'plot', phi, kk
+        plt.plot(phi, Vp, 'r') # plot vp
 #    plt.show()
 #    plt.plot(phi, Qp, 'r')
 #    plt.show()
 if __name__ == '__main__':
     main3()
 #    main4()
-    main1()
+#    main1()
+#    import matplotlib.pyplot as plt
+#    plt.figure()
+#    plt.subplot(211)
+#    a= [1,3,5]
+#    b= [5,5,5]
+#    plt.plot(a,b)
+#    plt.subplot(212)
+#    a= [1,3,5]
+#    b= [5,5,5]
+#    plt.plot(a,a)
+#    plt.show()
 #    i4 = Id4()
 #    print KelvintoVoigt(VoigttoKelvin(TensortoVoigt(i4)))
     
