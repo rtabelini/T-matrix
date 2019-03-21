@@ -3,6 +3,73 @@ From Berryman 1980
 """
 
 import numpy as np
+shear = []
+bulk=[]
+dens=[]
+macroporos=[]
+macroaspect=[]
+microporos=[]
+microaspect=[]
+vvp=[]
+vvs=[]
+#    arqshear = open("shear.txt",'r')
+#    tshear = arqshear.readlines()
+#    for i in range(len(tshear)):
+#        shear.append(float(tshear[i].strip()))
+    
+arqbulk = open("km_irineu.txt",'r')
+tbulk = arqbulk.readlines()
+for i in range(len(tbulk)):
+    bulk.append(float(tbulk[i].strip()))
+
+arqshear = open("gm_irineu.txt",'r')
+tshear = arqshear.readlines()
+for i in range(len(tshear)):
+    shear.append(float(tshear[i].strip()))
+
+arqdens = open("dens_irineu.txt",'r')
+tdens = arqdens.readlines()
+for i in range(len(tdens)):
+    dens.append(float(tdens[i].strip()))
+    
+arqmacroaspect = open("macroaspect_irineu.txt",'r')
+tmacroaspect = arqmacroaspect.readlines()
+for i in range(len(tmacroaspect)):
+    macroaspect.append(float(tmacroaspect[i].strip()))
+
+arqmicroaspect = open("microaspect_irineu.txt",'r')
+tmicroaspect = arqmicroaspect.readlines()
+for i in range(len(tmicroaspect)):
+    microaspect.append(float(tmicroaspect[i].strip()))
+    
+arqmacroporos = open("macroporos_irineu.txt",'r')
+tmacroporos = arqmacroporos.readlines()
+for i in range(len(tmacroporos)):
+    macroporos.append(float(tmacroporos[i].strip()))
+
+arqmicroporos = open("microporos_irineu.txt",'r')
+tmicroporos = arqmicroporos.readlines()
+for i in range(len(tmicroporos)):
+    microporos.append(float(tmicroporos[i].strip()))
+    
+arqvp = open("vp_irineu.txt",'r')
+tvp = arqvp.readlines()
+for i in range(len(tvp)):
+    vvp.append(float(tvp[i].strip()))
+    
+arqvs = open("vs_irineu.txt",'r')
+tvs = arqvs.readlines()
+for i in range(len(tvs)):
+    vvs.append(float(tvs[i].strip()))
+    
+def correlacao (xm, ym, xi, yi):
+    sxx = 0
+    syy = 0
+    sxy = 0
+    for i in range(len(xi)): sxx = sxx + (xi-xm)**2
+    for i in range(len(xi)): syy = syy + (yi-ym)**2
+    for i in range(len(xi)): sxx = sxx + (xi-xm)*(yi-ym)
+    return sxy/((sxx*syy)**0.5)
 
 def theta(alpha):
     return alpha*(np.arccos(alpha) - alpha*np.sqrt(1.0 - alpha*alpha))/(1.0 - alpha*alpha)**(3.0/2.0)
@@ -94,6 +161,55 @@ def discrete_normal(zmin, zmax, n):
     p[1:-1] = norm.cdf(z[1:]) - norm.cdf(z[:-1])
     
     return x, p
+
+def mainIrineuDem():
+    import matplotlib.pyplot as plt
+    rhof = 0.0012928 # g/cm3
+    lines = []
+    for i in range(len(vvp)):
+        print i
+        Km = bulk
+        Gm = shear
+        rhom = dens
+        alphameso = macroaspect
+        phimeso = macroporos
+        phimicro = microporos
+        e=10
+        alphamicro=0.001
+        while e>0.001:
+            K, G, phi = DEM(Km[i], Gm[i], np.array([0.0]), np.array([0.0]), np.array([alphameso[i]]), np.array([phimeso[i]]))
+            K, G, phi = DEM(K[-1], G[-1], np.array([0.0]), np.array([0.0]), np.array([alphamicro]), np.array([phimicro[i]]), phi[-1])
+
+            rho = (1.0 - phi)*rhom[i]# + phi*rhof
+    #        Ks = Gassmann.Ks(K, Km, Kf, phi) #sat
+    #        rho = rhom
+            Ks = K #dry
+            Ks = np.insert(Ks,0,Km[i])
+            phi = np.insert(phi,0,0.)
+            G = np.insert(G,0,Gm[i])
+            rho = np.insert(rho,0,rhom[i])
+            Vp = np.sqrt((Ks + 4.0*G/3.0)/rho)
+            Vs = np.sqrt(G/rho)
+    
+            alphamicro= alphamicro+0.00002
+            e = np.abs(Vp[-1]-vvp[i])
+        print Vp[-1], Vs[-1]
+        newarq = open("Vp_calc_DEM.txt", 'w')
+        lines.append (str(i+1)+" "+str(Vp[-1])+" "+str(Vs[-1]))
+        newarq.writelines ('\n'.join(lines))
+        plt.plot(phi, Vp, 'b')             # plot vp
+        
+    for i in range(len(macroporos)):
+        
+        if bulk[i] ==0.:
+            macroporos.pop(i)
+            bulk.pop(i)
+        else: 
+            plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+#    print 'vpp', Vp[-1]
+        
+    plt.grid()
+    plt.show()
     
     
 def main1():
@@ -104,14 +220,17 @@ def main1():
     rhom = 2.65 # g/cm3
     Vpf = 1.6 # km/s
     rhof = 1.1 # g/cm3
-    phimax = 0.3
+    phimax = 0.6
     
 #    Gm = Vsm*Vsm*rhom # GPa
 #    Km = Vpm*Vpm*rhom - 4.0*Gm/3.0 # GPa
 #    Kf = Vpf*Vpf*rhof # GPa
-    Gm= 32. #calcite
-    Km= 76.8
+#    Gm= 30. #calcite
+#    Km= 71.
+    Gm= 32.03
+    Km= 76.85
     rhom= 2.71
+    
 #    Km = 37.9#quartzo
 #    Gm = 44.3
 #    rhom = 2.65
@@ -119,6 +238,9 @@ def main1():
 #    Gm2= 94.9 #dolomite
 #    Km2= 38.8
 #    rhom2= 2.92
+#    Gm3= 22.9 #clay
+#    Km3= 10.6
+#    rhom3= 2.52
 #    Gm = 0.5*(Gm1+Gm2)
 #    k_reuss = (0.5/Km1 + 0.5/Km2)**(-1)
 #    k_voigt = 0.5*Km1 + 0.5*Km2
@@ -142,24 +264,58 @@ def main1():
 #    for alpha in alphamix:#[0.15, 0.02, 0.8]:  #[0.01, 0.05, 0.1, 0.15] -- 15=ref, 02 = crack, 80=stiff
 #    K = Km
 #    G = Gm
-    for alpha in [0.99]:
-#    for alpha in [0.01, 0.1, 0.5, 0.9]:
-#    for p in [0.2, 0.4, 0.6, 0.8,1]:
-#        for alpha in [0.15, 0.02, 0.8]:
-#        alphai = alpha
-#        if alpha != 0.15:
-#            alphai = p*alpha + (1-p)*0.15
-        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([alpha]), np.array([phimax]))
-#        print'kmmm \n', K,'\n\n', G, ' \n mm\n ', Km, Gm
-        
-#        for i in range(len(phi)):
-#            if alpha ==0.15: 
-#                phi_ref = phi
-#            else:
-#                phi = 0.8*phi + 0.2*phi_ref
-
-        rho = (1.0 - phi)*rhom + phi*rhof
-        Ks = Gassmann.Ks(K, Km, Kf, phi)
+#    plt.figure()
+#    for alpha in [0.05, 0.1, 0.15, 0.2]:
+#    Km =Km3
+#    Gm=Gm3
+#    rhom=rhom3
+    phimax = 0.2303
+    Km= 76.85
+    Gm= 32.03    
+    rhom= 2.71
+    meso = 0.51
+    micro = 0.04
+#    porototal = 0.2303
+    phimeso = 0.141
+    phimicro = 0.0893
+#    crack = 0.6122*meso + 0.3878*micro
+#    for i in range(len(macroporos)):
+#        Km= bulk[i]
+#        Gm= shear[i]   
+#        rhom= dens[i]
+#        meso = macroaspect[i]
+#        micro = microaspect[i]
+#        phimeso = macroporos[i]
+#        phimicro = microporos[i]
+    e=10
+    alpha=0.01
+#    while e>0.001:
+#        print e
+#    for alpha in [0.01, 0.1, 0.25, 0.99]:
+    for alpha in [1]:
+##    for alpha in aspect:
+##    for p in [0.2, 0.4, 0.6, 0.8,1]:
+##        for alpha in [0.15, 0.02, 0.8]:
+##        alphai = alpha
+##        if alpha != 0.15:
+##            alphai = p*alpha + (1-p)*0.15
+        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([0.99]), np.array([0.99]))
+##        print'kmmm \n', K,'\n\n', G, ' \n mm\n ', Km, Gm
+#        
+##        for i in range(len(phi)):
+##            if alpha ==0.15: 
+##                phi_ref = phi
+##            else:
+##                phi = 0.8*phi + 0.2*phi_ref
+#        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([meso]), np.array([phimeso]))
+    #    print 'KKK', Km, K,!
+#        K, G, phi = DEM(K[-1], G[-1], np.array([0.0]), np.array([0.0]), np.array([micro]), np.array([phimicro]), phi[-1])
+    
+#        rho = (1.0 - phi)*rhom# + phi*rhof #dry
+        rho = (1.0 - phi)*rhom + phi*rhof #sat
+        Ks = Gassmann.Ks(K, Km, Kf, phi) #sat
+#        rho = rhom
+#        Ks = K #dry
         Ks = np.insert(Ks,0,Km)
         phi = np.insert(phi,0,0.)
         G = np.insert(G,0,Gm)
@@ -168,7 +324,8 @@ def main1():
         Vs = np.sqrt(G/rho)
         k_reuss = (phi/Kf + (1 - phi)/Km)**(-1)
         k_voigt = phi*Kf+ (1 - phi)*Km
-        print 'mai1', rho[-1], Ks[0], phi[0]
+#        print 'mai1', rho[-1], G[-1], phi[0], Vs[-1]
+    
 #            vp_ref.append(Vp)
 #        
 #            phi = p*phic + (1-p)*phir
@@ -181,21 +338,45 @@ def main1():
 #        if alpha > ref:
 #            plt.plot(phi, Vp, 'b--')
 #        else:
-#            plt.plot(phi, Vp, 'b-.')
-#        plt.plot(phi, Vp, 'b') # plot vp
+#            plt.plot(phi, Vp, 'b-.')]
+#        print '\nultimovp',Vp[-1]
+#        plt.plot(phi, Vp, 'b')             # plot vp
+#        alpha= alpha+0.0001
+#        e = np.abs(Vp[-1]-3.186)
+#        print e, alpha
 #        plt.plot(phi, Vs, 'b')
 #        plt.plot(phi, rho, 'g')
-#        plt.plot(phi, Ks, 'b')
+#        plt.subplot(211)
+        plt.plot(phi, Ks/(Ks[0]), 'b')
+#        plt.grid()
 #        print Ks
+#        plt.subplot(212)
 #        plt.plot(phi, G, 'g')
 #        for i in range (len(Ks)):
 #            if i !=0:
 #                print (Ks[i] + 4.0*G[i]/3.0)-(Ks[i-1] + 4.0*G[i-1]/3.0)
         #(Ks + 4.0*G/3.0)
 #        plt.plot(phi, k_reuss, 'g')
-        plt.plot(phi, (Ks + 4.0*G/3.0), 'b') # plot c11
+#        plt.plot(phi, (Ks + 4.0*G/3.0), 'b')       # plot c11
 #        plt.plot(phi, k_voigt, 'g')
-    
+
+        
+    for i in range(len(macroporos)):
+        
+        if bulk[i] ==0.:
+#            i=1
+#            print 'iii'
+            macroporos.pop(i)
+            bulk.pop(i)
+            cont = cont+1
+            print 'len',len(macroporos), len(bulk), cont
+        else: 
+            i=1
+##            print '\nporos', macroporos[i]+microporos[i], vvp[i]
+#            plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+##            plt.plot(poros[i],vvp[i],'o')
+#    print 'vpp', Vp[-1]
+        
     plt.grid()
     plt.show()
 
@@ -217,13 +398,12 @@ def main2():
     # alpha_mean = [0.2] # [0.1, 0.2]
     # alpha_std = np.linspace(0.0025, 0.0525, 21) # np.linspace(0.0025, 0.0275, 11)
     alpha_mean = [0.5]
-    alpha_std = np.linspace(0.0025, 0.1325, 14)
-    
+    alpha_std = np.linspace(0.0025, 0.1325, 14)    
     x, p = discrete_normal(-3.5, 3.5, 70001)
     phis = p*phimax
     for am in alpha_mean:
         
-        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([am]), np.array([phimax]), minalphaphiratio=10000)
+#        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([am]), np.array([phimax]), minalphaphiratio=10000)
         rho = (1.0 - phi)*rhom + phi*rhof
         Ks = Gassmann.Ks(K, Km, Kf, phi)
         Vp = np.sqrt((Ks + 4.0*G/3.0)/rho)
@@ -249,8 +429,10 @@ def Poisson (Km, Gm):
     return (3.*Km-2.*Gm)/(2.*(3.*Km+Gm)) 
 
 def Calcite ():
-    Kmcal = 76.8
-    Gmcal = 32.0
+#    Kmcal = 71.
+#    Gmcal = 30.0
+    Kmcal = 76.85
+    Gmcal = 32.03
     rhocal = 2.710
     Ccal = np.zeros((6,6))
     Ccal[0][0]=Ccal[1][1]=Ccal[2][2] = Kmcal +4.*Gmcal/3
@@ -260,7 +442,7 @@ def Calcite ():
 #    alphacal = 0.2
     poiscal = Poisson(Kmcal, Gmcal)
 #    (3.*Kmcal-2.*Gmcal)/(2.*(3.*Kmcal+Gmcal))    
-    Ccal_ = VoigttoKelvin(Ccal)
+    Ccal_ = CVoigttoKelvin(Ccal)
 #    print 'antes kelvin \n', Ccal, '\n', Ccal_
 #    print Ccal[0][0]**0.5
     return [Ccal_, rhocal, poiscal]
@@ -274,7 +456,7 @@ def Dolomite ():
     Cdol[3][3]=Cdol[4][4]=Cdol[5][5] = Gmdol
     Cdol[0][1]=Cdol[0][2]=Cdol[1][0]=Cdol[1][2]=Cdol[2][0]=Cdol[2][1] = Kmdol - 2.*Gmdol/3
     poisdol = Poisson(Kmdol, Gmdol)#(3.*Kmdol-2.*Gmdol)/(2.*(3.*Kmdol+Gmdol))
-    Cdol_ = VoigttoKelvin(Cdol)
+    Cdol_ = CVoigttoKelvin(Cdol)
     return [Cdol_, rhodol, poisdol]
 
 def Aragonite ():
@@ -286,7 +468,7 @@ def Aragonite ():
     Cara[3][3]=Cara[4][4]=Cara[5][5] = Gmara
     Cara[0][1]=Cara[0][2]=Cara[1][0]=Cara[1][2]=Cara[2][0]=Cara[2][1] = Kmara - 2.*Gmara/3
     poisara = Poisson(Kmara, Gmara)#(3.*Kmara-2.*Gmara)/(2.*(3.*Kmara+Gmara))
-    Cara_ = VoigttoKelvin(Cara)
+    Cara_ = CVoigttoKelvin(Cara)
     return [Cara_, rhoara, poisara]
     
 def Quartzo ():
@@ -298,14 +480,44 @@ def Quartzo ():
     Cq[3][3]=Cq[4][4]=Cq[5][5] = Gmq
     Cq[0][1]=Cq[0][2]=Cq[1][0]=Cq[1][2]=Cq[2][0]=Cq[2][1] = Kmq - 2.*Gmq/3
     poisq = Poisson(Kmq, Gmq)#(3.*Kmq-2.*Gmq)/(2.*(3.*Kmq+Gmq))
-    Cq_ = VoigttoKelvin(Cq)
+    Cq_ = CVoigttoKelvin(Cq)
     print Cq_[0][0]
     return [Cq_, rhoq, poisq]
     
 def Clay ():
-#    Kmq = 37
-#    Gmq = 44
-    rhoc = 1.48
+
+    rhoc = 2.52#1.48
+    Cclay = np.zeros((6,6))
+#    Cclay[0][0] = Cclay[1][1] = 17.15
+#    Cclay[2][2] = 5.26
+#    Cclay[0][1] = Cclay[1][0] = 17.15-2*6.63
+#    Cclay[0][2] = Cclay[1][2] = Cclay[2][0] = Cclay[2][1] = 2.71
+#    Cclay[5][5] = 6.63
+#    Cclay[4][4] = Cclay[3][3] = 1.48    
+#    v1 = 0.2
+    Kmc = 22.9
+    Gmc = 10.6
+    Cclay[0][0]=Cclay[1][1]=Cclay[2][2] = Kmc +4.*Gmc/3
+    Cclay[3][3]=Cclay[4][4]=Cclay[5][5] = Gmc
+    Cclay[0][1]=Cclay[0][2]=Cclay[1][0]=Cclay[1][2]=Cclay[2][0]=Cclay[2][1] = Kmc - 2.*Gmc/3
+    
+    poisc = 0.4
+    Cclay_ = CVoigttoKelvin(Cclay)
+    return [Cclay_, rhoc, poisc]
+
+def MineralMatriz (Km = 76.85, Gm = 32.03, rho = 2.710):
+    Ccal = np.zeros((6,6))
+    Ccal[0][0]=Ccal[1][1]=Ccal[2][2] = Km +4.*Gm/3
+    Ccal[3][3]=Ccal[4][4]=Ccal[5][5] = Gm
+    Ccal[0][1]=Ccal[0][2]=Ccal[1][0]=Ccal[1][2]=Ccal[2][0]=Ccal[2][1] = Km - 2.*Gm/3
+    poiscal = Poisson(Km, Gm)
+    Ccal_ = CVoigttoKelvin(Ccal)
+#    print 'ccalal', Ccal,'\n', Ccal_
+    return [Ccal_, rho, poiscal]
+    
+def Clayxx ():
+
+    rhoc = 2.52#1.48
     Cclay = np.zeros((6,6))
     Cclay[0][0] = Cclay[1][1] = 17.15
     Cclay[2][2] = 5.26
@@ -314,14 +526,21 @@ def Clay ():
     Cclay[5][5] = 6.63
     Cclay[4][4] = Cclay[3][3] = 1.48    
 #    v1 = 0.2
+#    Kmc = 22.9
+#    Gmc = 10.6
+#    Cclay[0][0]=Cclay[1][1]=Cclay[2][2] = Kmc +4.*Gmc/3
+#    Cclay[3][3]=Cclay[4][4]=Cclay[5][5] = Gmc
+#    Cclay[0][1]=Cclay[0][2]=Cclay[1][0]=Cclay[1][2]=Cclay[2][0]=Cclay[2][1] = Kmc - 2.*Gmc/3
+    
     poisc = 0.4
-    Cclay_ = VoigttoKelvin(Cclay)
+    Cclay_ = CVoigttoKelvin(Cclay)
     return [Cclay_, rhoc, poisc]
+
 
 def Water ():
 #    Kmw = 2.2
 #    Gmw = 0.0
-    rhow = 1.1
+    rhow = 1.0
     Cw = np.zeros((6,6))
     Cw[0][0] = Cw[1][1] = 2.2
     Cw[2][2] = 2.2
@@ -333,7 +552,7 @@ def Water ():
 #    phiwat = 0.2
 #    alphawat = 0.2
     poisw = 0.5
-    Cw_ = VoigttoKelvin(Cw)
+    Cw_ = CVoigttoKelvin(Cw)
     return [Cw_, rhow, poisw, viscow]
 
 def Dry():
@@ -341,7 +560,7 @@ def Dry():
     viscod = 0.000001
     Cd = np.zeros((6,6))
     poisd = 0.5
-    Cd_ = VoigttoKelvin(Cd)
+    Cd_ = CVoigttoKelvin(Cd)
     return [Cd_, rhod, poisd, viscod]
 
 def Ar():
@@ -356,15 +575,16 @@ def Ar():
 def Dqs (C0, km, kn):
     return C0*km*kn
 
-def TensorGreen (alpha, C0):
-    C0 = KelvintoVoigt(C0)
-    Etensor = E(alpha,C0)
-    Epqrs = Etensor[0]
-    Epqsr = Etensor[1]
-    Eqprs = Etensor[2]
-    Eqpsr = Etensor[3]
-    G = -0.25*(Epqrs + Epqsr + Eqprs + Eqpsr)
-    return G
+#def TensorGreen (alpha, C0):
+#    C0 = KelvintoVoigt(C0)
+#    Gtensor = E(alpha,C0)
+#    Epqrs = Etensor[0]
+#    Epqsr = Etensor[1]
+#    Eqprs = Etensor[2]
+#    Eqpsr = Etensor[3]
+#    G = -0.25*(Epqrs + Epqsr + Eqprs + Eqpsr)
+#    return G
+#    return -Gtensor
     
 #def Green (alpha, C):
 ##    E = [Epqrs, Epqsr, Eqprs, Eqpsr]   --> iguais !
@@ -380,8 +600,9 @@ def TensorGreen (alpha, C0):
 #    G = -1.*Epqrs
 #    return G
     
-def E (alpha, C0):
+def TensorGreen (alpha, C0_):
     from scipy.integrate import quad
+    C0 = CKelvintoVoigt(C0_)
     C11 = C0[0][0]
     C44 = C0[3][3]
     C33 = C0[2][2]
@@ -390,80 +611,149 @@ def E (alpha, C0):
     d = C11
     f = C44
     h = C33
-    e = (C11-C12)/2
+    e = (C11-C12)/2.
     g = C13 + C44
+#    e=f
+#    d=h
+    alphaquad = alpha**-2
     def delta(x):
-        return 1./( (e*(1-x**2) + f*alpha**2*x**2)*((d*(1-x**2) + f*alpha**2*x**2)*(f*(1-x**2) + h*alpha**2*x**2) - g**2*alpha**2*x**2*(1-x**2)))
+        temp=(e*(1.-x**2) + f*(alphaquad)*(x**2))*((d*(1.-x**2) + f*alphaquad*(x**2))*(f*(1.-(x**2)) + h*alphaquad*(x**2)) - (g**2)*alphaquad*(x**2)*(1.-(x**2)))
+        return temp**(-1)
     
     def e1111 (x):
-        return delta(x)*(1-x**2)*((f*(1-x**2) + h*alpha**2*x**2)*((3*e+d)*(1-x**2) + 4*f*alpha**2*x**2) - 
-        g**2*alpha**2*x**2*(1-x**2))
+        return (delta(x)*(1.-(x**2)))*((f*(1.-(x**2)) + h*alphaquad*(x**2))*((3.*e+d)*(1.-(x**2)) + 4*f*alphaquad*(x**2)) - 
+        (g**2)*alphaquad*(x**2)*(1.-(x**2)))
         
     def e3333 (x):
-        return delta(x)*alpha**2*x**2*(d*(1-x**2) + f*alpha**2*x**2)*(e*(1-x**2)+f*alpha**2*x**2)
-    
+        return delta(x)*alphaquad*(x**2)*(d*(1.-(x**2)) + f*alphaquad*(x**2))*(e*(1.-(x**2))+f*alphaquad*(x**2))
+#    
     def e1122 (x):
-        return delta(x)*(1-x**2)*((f*(1-x**2) + h*alpha**2*x**2)*((e+3*d)*(1-x**2) + 4*f*alpha**2*x**2) -
-        3*g**2*alpha**2*x**2*(1-x**2))
+        return delta(x)*(1.-(x**2))*((f*(1.-(x**2)) + h*alphaquad*(x**2))*((e+3.*d)*(1.-(x**2)) + 4.*f*alphaquad*(x**2)) -
+        3.*(g**2)*alphaquad*(x**2)*(1.-(x**2)))
         
     def e1133 (x):
-        return delta(x)*alpha**2*x**2*(((d+e)*(1-x**2) + 2+f+alpha**2*x**2)*(f*(1-x**2) + h*alpha**2*x**2) -
-        g**2*alpha**2*x**2*(1-x**2))
+        return delta(x)*alphaquad*(x**2)*(((d+e)*(1.-(x**2)) + 2.*f*alphaquad*(x**2))*(f*(1.-(x**2)) + h*alphaquad*(x**2)) -
+        (g**2)*alphaquad*(x**2)*(1.-(x**2)))
     
     def e3311 (x):
-        return delta(x)*(1-x**2)*(d*(1-x**2) + f*alpha**2*x**2)*(e*(1-x**2) + f*alpha**2*x**2)
+        return delta(x)*(1.-(x**2))*(d*(1.-(x**2)) + f*alphaquad*(x**2))*(e*(1.-(x**2)) + f*alphaquad*(x**2))
     
     def e1212 (x):
-        return delta(x)*(1-x**2)**2*(g**2*alpha**2*x**2 - (d-e)*(f*(1-x**2) + h*alpha**2*x**2))
+        return delta(x)*((1.-(x**2))**2)*((g**2)*alphaquad*(x**2)-(d-e)*(f*(1.-(x**2)) + h*alphaquad*(x**2)))
     
     def e1313 (x):
-        return delta(x)*g*alpha**2*x**2*(1-x**2)*(e*(1-x**2) + f*alpha**2*x**2)
+        return delta(x)*g*alphaquad*(x**2)*(1.-(x**2))*(e*(1.-(x**2)) + f*alphaquad*(x**2))
+#    
+#    def e1212 (x):#primeira 1212=e2121
+#        return delta(x)*(1-x**2)*((f*(1-x**2) + h*alphaquad*x**2)*((e+3*d)*(1-x**2) + 4*f*alphaquad*x**2) -
+#        3*g**2*alphaquad*x**2*(1-x**2))
+##    
+#    def e1313 (x):#1133 vira 1313=2323
+#        return delta(x)*alphaquad*(x**2)*(((d+e)*(1.-(x**2)) + 2.*f*alphaquad*(x**2))*(f*(1.-(x**2)) + h*alphaquad*(x**2)) -
+#        (g**2)*alphaquad*(x**2)*(1.-(x**2)))
+##        
+#    def e3131 (x):#3311 vira 3131=3232
+#        return delta(x)*(1.-(x**2))*(d*(1.-(x**2)) + f*alphaquad*(x**2))*(e*(1.-(x**2)) + f*alphaquad*(x**2))
+##    
+#    def e1122 (x):#1212 vira 1122
+#        return delta(x)*((1.-(x**2))**2)*((g**2)*alphaquad*(x**2)-(d-e)*(f*(1.-(x**2)) + h*alphaquad*(x**2)))
+##    
+#    def e1133 (x):#1313 vira 1133=2233
+#        return delta(x)*g*alphaquad*(x**2)*(1.-(x**2))*(e*(1.-(x**2)) + f*alphaquad*(x**2))
+    
+        
+    E1111 = (0.5*np.pi)*quad(e1111, 0, 1)[0]                   #E1111/E2222
+    E3333 = (4.*np.pi)*quad(e3333, 0, 1)[0]                     #E3333
+    E1122 = (0.5*np.pi)*quad(e1122, 0, 1)[0]                   #E1122/E2211
+    E1133 = (2.*np.pi)*quad(e1133, 0, 1)[0]                     #E1133/E2233
+    E3311 = (2.*np.pi)*quad(e3311, 0, 1)[0]                     #E3311/E3322
+    E1212 = (0.5*np.pi)*quad(e1212, 0, 1)[0]                    #E1212
+    E1313 = (-2.*np.pi)*quad(e1313, 0, 1)[0]                    #E1313/E2323
+    
+#    E1212 = (0.5*np.pi)*quad(e1212, 0, 1)[0]                   #E1212/2121
+#    E1313 = (2.*np.pi)*quad(e1313, 0, 1)[0]                     #E1313/2323
+#    E3131 = (2.*np.pi)*quad(e3131, 0, 1)[0]                     #E3131/3232
+#    E1122 = (0.5*np.pi)*quad(e1122, 0, 1)[0]                    #1122
+#    E1133 = (-2.*np.pi)*quad(e1133, 0, 1)[0]                    #E1133/2233
+    
+#    Epqrs = np.zeros((6,6))
+#    Epqrs[0][0] = Epqrs[1][1] = E1111
+#    Epqrs[2][2] = E3333
+#    Epqrs[0][1] = Epqrs[1][0] = E1122
+#    Epqrs[0][2] = Epqrs[1][2] = E1133
+#    Epqrs[2][0] = Epqrs[2][1] = E3311
+#    Epqrs[5][5] = E1212
+#    Epqrs[4][4] = Epqrs[3][3] = E1313
+    
+    #    Epqrs = np.zeros((6,6))
+#    Epqrs[0][0] = Epqrs[1][1] = E1111
+#    Epqrs[2][2] = E3333
+#    Epqrs[0][1] = Epqrs[1][0] = E1212
+#    Epqrs[0][2] = Epqrs[1][2] = E1313
+#    Epqrs[2][0] = Epqrs[2][1] = E3131
+#    Epqrs[5][5] = E1122
+#    Epqrs[4][4] = E1133
+    print '\neee\n', E1111,E3333,E1122,E1133,E3311,E1212,E1313,'\n\n'
+    Epqrs = np.zeros((3,)*4)#np.tensordot(np.zeros((3,3)), np.zeros((3,3)),0)    
+    Epqrs[0][0][0][0] = Epqrs[1][1][1][1] = E1111
+    Epqrs[2][2][2][2] = E3333
+    Epqrs[0][0][1][1] = Epqrs[1][1][0][0] = E1122
+    Epqrs[0][0][2][2] = Epqrs[1][1][2][2] = E1133
+    Epqrs[2][2][0][0] = Epqrs[2][2][1][1] = E3311
+    Epqrs[0][1][0][1] = E1212
+    Epqrs[0][2][0][2] = Epqrs[1][2][1][2] = E1313
+#    
+#    Epqrs[0][1][0][1] = Epqrs[1][0][1][0] = E1212
+#    Epqrs[0][2][0][2] = Epqrs[1][2][1][2] = E1313
+#    Epqrs[2][0][2][0] = Epqrs[2][1][2][1] = E3131
+#    Epqrs[0][0][1][1] = E1122
+#    Epqrs[0][0][2][2] = Epqrs[1][1][2][2] = E1133
+#    Epqrs__ = TensortoVoigt(Epqrs)
+#    Epqrs_ = CVoigttoKelvin(Epqrs__)
+    Epqrs_ = CTensortoKelvin(Epqrs)
+    
+#    Epqsr = np.zeros((6,6))
+#    Epqsr[0][0] = Epqsr[1][1] = E1111
+#    Epqsr[2][2] = E3333
+#    Epqsr[0][1] = Epqsr[1][0] = E1122
+#    Epqsr[0][2] = Epqsr[1][2] = E1133
+#    Epqsr[2][0] = Epqsr[2][1] = E3311
+#    Epqsr[5][5] = E1212 
+#    Epqsr[4][4] = Epqsr[3][3] = E1313 
+#    
+#    Eqprs = np.zeros((6,6))
+#    Eqprs[0][0] = Eqprs[1][1] = E1111
+#    Eqprs[2][2] = E3333
+#    Eqprs[0][1] = Eqprs[1][0] = E1122
+#    Eqprs[0][2] = Eqprs[1][2] = E1133
+#    Eqprs[2][0] = Eqprs[2][1] = E3311
+#    Eqprs[5][5] = E1212 
+#    Eqprs[4][4] = Eqprs[3][3] = E1313 
+#    
+#    Eqpsr = np.zeros((6,6))
+#    Eqpsr[0][0] = Eqpsr[1][1] = E1111
+#    Eqpsr[2][2] = E3333
+#    Eqpsr[0][1] = Eqpsr[1][0] = E1122
+#    Eqpsr[0][2] = Eqpsr[1][2] = E1133
+#    Eqpsr[2][0] = Eqpsr[2][1] = E3311
+#    Eqpsr[5][5] = E1212 
+#    Eqpsr[4][4] = Eqpsr[3][3] = E1313 
+    
+#    return -0.25*[Epqrs_, Epqrs_, Epqrs_, Epqrs_]
+    return -Epqrs_
 
-    E1111 = (0.5*np.pi)*quad(e1111, 0, 1)[0]                   #E2222
-    E3333 = (4*np.pi)*quad(e3333, 0, 1)[0]
-    E1122 = (0.5*np.pi)*quad(e1122, 0, 1)[0]                   #E2211
-    E1133 = (2*np.pi)*quad(e1133, 0, 1)[0]                     #E2233
-    E3311 = (2*np.pi)*quad(e3311, 0, 1)[0]                     #E3322
-    E1212 = (0.5*np.pi)*quad(e1212, 0, 1)[0]
-    E1313 = (-2*np.pi)*quad(e1313, 0, 1)[0]                    #E2323
-    
-    Epqrs = np.zeros((6,6))
-    Epqrs[0][0] = Epqrs[1][1] = E1111
-    Epqrs[2][2] = E3333
-    Epqrs[0][1] = Epqrs[1][0] = E1122
-    Epqrs[0][2] = Epqrs[1][2] = E1133
-    Epqrs[2][0] = Epqrs[2][1] = E3311
-    Epqrs[5][5] = E1212
-    Epqrs[4][4] = Epqrs[3][3] = E1313
-    
-    Epqsr = np.zeros((6,6))
-    Epqsr[0][0] = Epqsr[1][1] = E1111
-    Epqsr[2][2] = E3333
-    Epqsr[0][1] = Epqsr[1][0] = E1122
-    Epqsr[0][2] = Epqsr[1][2] = E1133
-    Epqsr[2][0] = Epqsr[2][1] = E3311
-#    Epqsr[5][5] = E1212 seria E1221
-#    Epqsr[4][4] = Epqsr[3][3] = E1313 seria E1331
-    
-    Eqprs = np.zeros((6,6))
-    Eqprs[0][0] = Eqprs[1][1] = E1111
-    Eqprs[2][2] = E3333
-    Eqprs[0][1] = Eqprs[1][0] = E1122
-    Eqprs[0][2] = Eqprs[1][2] = E1133
-    Eqprs[2][0] = Eqprs[2][1] = E3311
-#    Eqpsr[5][5] = E1212 seria E2112
-#    Eqpsr[4][4] = Eqpsr[3][3] = E1313 seria E3113
-    
-    Eqpsr = np.zeros((6,6))
-    Eqpsr[0][0] = Eqpsr[1][1] = E1111
-    Eqpsr[2][2] = E3333
-    Eqpsr[0][1] = Eqpsr[1][0] = E1122
-    Eqpsr[0][2] = Eqpsr[1][2] = E1133
-    Eqpsr[2][0] = Eqpsr[2][1] = E3311
-#    Eqpsr[5][5] = E1212 seria E2121
-#    Eqpsr[4][4] = Eqpsr[3][3] = E1313 seria E3131
-    
-    return [Epqrs, Epqsr, Eqprs, Eqpsr]
+def Cinv(C0):
+    """retorna S0 ao passar C0"""
+    c11 = C0[0][0]
+    c12 = C0[0][1]
+    S0 = np.zeros((6,6))
+    S0[0][0]=S0[1][1]=S0[2][2] = (c11+c12)/((c11-c12)*(c11+2*c12))
+    Ccal[3][3]=Ccal[4][4]=Ccal[5][5] = Gm
+    Ccal[0][1]=Ccal[0][2]=Ccal[1][0]=Ccal[1][2]=Ccal[2][0]=Ccal[2][1] = Km - 2.*Gm/3
+    poiscal = Poisson(Km, Gm)
+    Ccal_ = CVoigttoKelvin(Ccal)
+#    print 'ccalal', Ccal,'\n', Ccal_
+    return S0
     
 def TensorG (C0, alpha, v):
     #alpha eh razao de aspecto menor 1
@@ -473,9 +763,17 @@ def TensorG (C0, alpha, v):
     alphaquad = alpha**2
 #    C0 = KelvintoVoigt(C0)
     S0 = np.linalg.inv(C0)
+#    S0 = VoigttoKelvin(np.linalg.inv(KelvintoVoigt(C0)))
 #    print 'alpaaa', alpha
-    q = ((alpha)/((1.-alphaquad)**(1.5)))*(np.arccos(alpha) - alpha*((1.-alphaquad)**0.5))
-    
+#    alpha = 0.1
+#    v=0.5
+    if alpha <1.:
+        q = ((alpha)/((1.-alphaquad)**(1.5)))*(np.arccos(alpha) - alpha*((1.-alphaquad)**0.5))
+    elif alpha ==1.:
+        q=2./3.
+    else:
+        q = ((alpha)/((alphaquad-1.)**(1.5)))*(alpha*((alphaquad-1.)**0.5) - np.arccosh(alpha))
+#    print 'qqq\n', q
     S1111 = ((3.*alphaquad)/(8.*(1.-v)*(alphaquad-1.))) + (1./(4*(1-v))) * (1.-2.*v-(9./(4*(alphaquad-1.))))*q
     S3333 = (1./(2.*(1.-v)))*(1.-2.*v + (3.*alphaquad-1.)/(alphaquad-1.)-(1.-2.*v+(3.*alphaquad)/(alphaquad-1.))*q)
     S1122 = (1./(4.*(1.-v)))*(((alphaquad)/(2.*(alphaquad-1.)))-(1.-2.*v+((3.)/(4.*(alphaquad-1.))))*q)
@@ -486,19 +784,28 @@ def TensorG (C0, alpha, v):
     
     Sr = np.zeros((3,)*4)#np.tensordot(np.zeros((3,3)), np.zeros((3,3)),0)
     
-    Sr[0][0][0][0] = Sr[1][1][1][1] = S1111
-    Sr[2][2][2][2] = S3333
-    Sr[0][0][1][1] = Sr[1][1][0][0] = S1122
-    Sr[0][0][2][2] = Sr[1][1][2][2] = S1133
-    Sr[2][2][0][0] = Sr[2][2][1][1] = S3311
-    Sr[0][1][0][1] = S1212
-    Sr[0][2][0][2] = Sr[1][2][1][2] = S1313
+    Sr[0][0][0][0] = Sr[1][1][1][1] = S1111             #S1111/S2222
+    Sr[2][2][2][2] = S3333                              #S3333
+    Sr[0][0][1][1] = Sr[1][1][0][0] = S1122             #S1122/S2211
+    Sr[0][0][2][2] = Sr[1][1][2][2] = S1133             #S1133/S2233
+    Sr[2][2][0][0] = Sr[2][2][1][1] = S3311             #S3311/S3322
+    Sr[0][1][0][1] = S1212                              #S1212
+    Sr[0][2][0][2] = Sr[1][2][1][2] = S1313             #S1313/S2323
     
-    Sr_ = TensortoKelvin(Sr)
-#    Sr_ = KelvintoVoigt(Sr_)
-#    print '\ns111\n', S1111, S3333, S1122, S1133, S3311, S1212 ,S1313
-    Gr = -np.dot(Sr_,S0)
-    return Gr
+    Sr_ = STensortoKelvin(Sr)
+#    Sr_ = TensortoVoigt(Sr)
+#    Sr__ = SVoigttoKelvin(Sr_)
+#    Sr_[0][0]=Sr_[2][2]
+#    Sr_[1][1]=Sr_[2][2]
+#    Sr_[3][3]=Sr_[5][5]
+#    Sr_[4][4]=Sr_[4][4]*4.
+#    Sr_[5][5]=Sr_[5][5]*4.
+#    Sr_[6][6]=Sr_[6][6]*4.
+#    print '\ns111\n', S0, SKelvintoVoigt(S0), SVoigttoKelvin(SKelvintoVoigt(S0))
+    
+    Gr = - np.dot(Sr_,S0)
+#    Sr__ = KelvintoVoigt(Sr_)
+    return Gr,Sr_ #ambo em voigt
     
 
 
@@ -581,11 +888,12 @@ def Theta (kfl, S0, omega, visc, poros, gamma, tal, kdry, ku, kv, perm):
     Suuvv = Muv(S0)
     Kduuvv = Muv(kdry)
 #    temp1 = 1. - np.dot(kfl,S0)
-    temp1 = 1. - kfl*Suuvv
+    temp1 = 1. - kfl*Suuvv #nao usada mais apos correção do modelo
     temp2 = poros/(1.+np.complex(0,1)*omega*tal*gamma)
     temp3 = (poros*Kduuvv)/(1.+np.complex(0,1)*omega*tal*gamma)
 #    temp4 = np.complex(0,1)*np.dot(ku, kv)
     temp4 = np.dot(ku, perm)
+#    print 'kuuu\n',ku, '\n', perm, '\n', kv, '\n', np.dot(np.dot(perm, ku), kv)
 #    temp5 = np.dot(temp4, perm)
     temp5 = np.complex(0,1)*np.dot(temp4, kv)
 #    temp6 = np.dot(temp5, kfl)
@@ -601,12 +909,21 @@ def Theta (kfl, S0, omega, visc, poros, gamma, tal, kdry, ku, kv, perm):
 #    theta = np.dot(kfl, invtemp10)   
     theta = kfl*invtemp10
 #    print theta
-    return theta
+    
+    delta = (kfl*tal)/(poros*visc)*np.dot(np.dot(perm, ku), kv)
+#    print delta, theta
+#    temp11 = poros*gamma/(1+np.complex(0,1)*omega*tal*gamma)
+#    temp12 = np.complex(0,1)*kfl*np.dot(np.dot(perm, ku), kv)/(visc*omega*(1-delta))
+#    ntheta = temp11 + temp12
+#    nthetainv = (ntheta)**-1
+#    nktheta = kfl*nthetainv
+#    print '\n ', nktheta
+    return theta*(1-delta)
     
 def Zeta (tdry, S0, poros, omega, tal, gamma):
     I2 = np.identity(3)
     i2xi2 = np.tensordot(I2,I2,0)
-    i2xi2m = TensortoKelvin(i2xi2)
+    i2xi2m = CTensortoKelvin(i2xi2)
 #    zeta = np.dot(np.dot(np.dot(tdry,S0),(I2x)),S0)*((poros*tdry)/(1. + np.complex(0,1)*omega*tal*gamma))
     temp1 = np.dot(tdry,S0)
 #    temp2 = np.dot(I2, I2) ##### VERIFICAR PRODUTO DIADICO
@@ -620,7 +937,7 @@ def Qui (tdry, S0):
 #    qui = np.dot(np.dot(np.dot(np.dot(tdry,S0),(I2x)),S0),tdry)
     I2 = np.identity(3)
     i2xi2 = np.tensordot(I2,I2,0)
-    i2xi2m = TensortoKelvin(i2xi2)
+    i2xi2m = CTensortoKelvin(i2xi2)
     temp1 = np.dot(tdry,S0)
 #    temp2 = np.dot(I2, I2) ##### VERIFICAR PRODUTO DIADICO
     temp3 = np.dot(temp1, i2xi2m)
@@ -690,15 +1007,30 @@ def TensortoVoigt(k):                       #notacao de voigt para tensor de 4a 
     m[5,4]=k[0][1][0][2]
     m[5,5]=k[0][1][0][1]
     return m 
+
+def SVoigttoKelvin (v):              #conversao de notacao voigt para kelvin
+    i = np.identity(6)
+    i[3][3] = i[4][4] = i[5][5] = np.sqrt(2)
+    i_ = np.linalg.inv(i)
+    temp1 = np.dot(i_,v)
+    temp2 = np.dot(temp1,i_)
+    return temp2
+
+def SKelvintoVoigt (k):              #conversao de notacao kelvin para voigt
+    i = np.identity(6)
+    i[3][3] = i[4][4] = i[5][5] = np.sqrt(2)
+    temp1 = np.dot(i,k)
+    temp2 = np.dot(temp1,i)
+    return temp2
     
-def VoigttoKelvin (v):              #conversao de notacao voigt para kelvin
+def CVoigttoKelvin (v):              #conversao de notacao voigt para kelvin
     i = np.identity(6)
     i[3][3] = i[4][4] = i[5][5] = np.sqrt(2)
     temp1 = np.dot(i,v)
     temp2 = np.dot(temp1,i)
     return temp2
 
-def KelvintoVoigt (k):              #conversao de notacao kelvin para voigt
+def CKelvintoVoigt (k):              #conversao de notacao kelvin para voigt
     i = np.identity(6)
     i[3][3] = i[4][4] = i[5][5] = np.sqrt(2)
     i_ = np.linalg.inv(i)
@@ -706,9 +1038,14 @@ def KelvintoVoigt (k):              #conversao de notacao kelvin para voigt
     temp2 = np.dot(temp1,i_)
     return temp2
 
-def TensortoKelvin (t):             #conversao de tensor de 4a ordem para kelvin
+def CTensortoKelvin (t):             #conversao de tensor de 4a ordem para kelvin
     temp1 = TensortoVoigt(t)
-    temp2 = VoigttoKelvin(temp1)
+    temp2 = CVoigttoKelvin(temp1)
+    return temp2
+
+def STensortoKelvin (t):             #conversao de tensor de 4a ordem para kelvin
+    temp1 = TensortoVoigt(t)
+    temp2 = SVoigttoKelvin(temp1)
     return temp2
 
 def Tuuvv (T):                      #traco do tensor na forma tensorial
@@ -754,24 +1091,27 @@ def T2 (vr, tr, gdrs, vs, ts):
     temp4 = np.dot(temp3, vs)
     return temp4
     
-def IncludeT (C0, Cr, Gr, poison, alpha, vr):  #ni = number of inclusions
-    kfl = Cr[0][0]
+def IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega):  #ni = number of inclusions
+#    print 'kmoega\n', k, omega
+    if omega==0.: omega=1.
+    kfl = Cr[0][0]    
 #    S0 = np.linalg.inv(C0)
-    
-    freq = 1000000
-    omega = 2*np.pi*freq
-    vpm = 5.85
-    ku = np.array([omega/vpm,0,0]) 
+#    print 'omegaa3', omega
+#    freq = 100
+#    omega = 2*np.pi*freq
+#    omega = 100000000
+    vpm = 5.850
+    ku = np.array([omega/vpm,omega/vpm,omega/vpm]) 
 #    ku = omega/vpm
-    kv = np.array([0,omega/vpm,0]) 
-    tal = 0.0000001
+    kv = np.array([omega/vpm,omega/vpm,omega/vpm]) 
+    tal = 0.000001
     visc = 0.001
-    perm = np.identity(3)
+    perm = k
     
     dry = Dry()
     Cdry = dry[0]
     dC_dry = DeltaC(Cdry, C0)
-    G_dry = TensorG(C0, alpha, poison) 
+    G_dry, Sr = TensorG(C0, alpha, poison) 
     
     S0 = np.linalg.inv(C0)
 #    G1_ = TensorG(C0, alpha, poisi)
@@ -780,9 +1120,9 @@ def IncludeT (C0, Cr, Gr, poison, alpha, vr):  #ni = number of inclusions
     kdry = Kdry (G_dry, C0, S0)
     
     gamma = Gamma(kfl, kdry, S0)
-    
+#    print 'freqqq\n',omega
     theta = Theta(kfl, S0, omega, visc, vr, gamma, tal, kdry, ku, kv, perm)
-#    print theta
+    
     zeta = Zeta(tdry, S0, vr, omega, tal, gamma)
     qui = Qui(tdry, S0);
     temp1 = np.dot(theta, zeta)
@@ -791,6 +1131,7 @@ def IncludeT (C0, Cr, Gr, poison, alpha, vr):  #ni = number of inclusions
     temp3 = 1.+np.complex(0,1)*omega*tal*gamma
 #    print 't', temp1, '\n', temp2, '\n', temp3
     tsat = tdry + (temp1 + temp2)/(temp3)
+#    print  'ttt', theta, zeta
     return tsat
     
 def IncludeDem (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of inclusions
@@ -947,19 +1288,21 @@ def Ct (C0, T1_, T2_):
     invtemp2 = np.linalg.inv(temp2)
     temp3 = np.dot(T1_,invtemp2)
     Ct = C0 + temp3
-#    print temp3
+#    print 't3\n',temp3
     return Ct
 
 def CSingle (C0, tr, vr, gr):
     I4 = np.identity(6)
     T1_ = T1(vr, tr)
     T2_ = I4
+#    T2_ = -np.dot(np.dot(T1_,gr),T1_)
     invT1 = np.linalg.inv(T1_)
     temp1 = np.dot(invT1, T2_)
     temp2 = I4 + temp1 #ou invT1
     invtemp2 = np.linalg.inv(temp2)
     temp3 = np.dot(T1_,invtemp2)
     Ct = C0 + temp3
+#    print '\ncsingle', vr, C0, T1_
 #    print temp3
     return Ct
 
@@ -977,9 +1320,11 @@ def CFam (C0, tr, vr, gr, ts, vs, gdrs):
 #    print temp3
     return Ct
 
-def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
+def IncludeFam (matrix, gr_fam, cavity, k, omega):  #ni = number of inclusions
 #    gr_fam = [fam1, fam2]
 #    fam# = [water, alpha, phi]
+#    print 'rhoi',gr_fam[0]
+#    print 'fam', omega
     C0 = matrix[0] 
     rhom = matrix[1]
     poisi = matrix[2]
@@ -987,11 +1332,15 @@ def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
     rho_i = []
     alpha_i = []
     phi_i = []
+    type_i=[]
     for fam in gr_fam:
+#        print 'fam',fam
         Cr_i.append(fam[0][0])
         rho_i.append(fam[0][1])
         alpha_i.append(fam[1])
         phi_i.append(fam[2])
+        type_i.append(fam[3])
+#    print 'iii\n', rho_i, alpha_i, phi_i
 #    for i in range (len(rho_i)):
 #    print 'rhof', rho_i, phi_i, (1-np.sum(phi_i))*rhom+np.dot(rho_i,phi_i)
 #        rhof = (1.-rho_i)*rhom + rho_i*phi_i
@@ -1005,60 +1354,83 @@ def IncludeFam (matrix, gr_fam, cavity):  #ni = number of inclusions
     poison = poisi
     C1=0.
     C2=0.
-    lrhof = []
     vf = 0.
+    vs=0.
+    vr=0.
+    tr=[]
+    ts=[]
+    vfin = 0.0
+    cavity=0
+#    alphad = 0.99
     for i in range(len(gr_fam)):
         vr = phi_i[i]
-#        print vr
+#        print vr,'vrrrrrr'
         alpha = alpha_i[i]
         Cr = Cr_i[i]
         rhoi = rho_i[i]
         
-        Gr = TensorG(C0, alpha, poison) 
+        Gr, er = TensorG(C0, alpha, poison) 
         dC = DeltaC(Cr, C0)
         if cavity == 0: 
             tr = T_r (dC , Gr) # nao considera frequencia
 #            ts = T_r (dC, Gr)
         else: 
-            tr = IncludeT (C0, Cr, Gr, poison, alpha, vr) # considera frequencia
-        alphad = alpha*vr
-        gdrs = TensorG(C0, alphad, poison) 
+            tr = IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega) # considera frequencia
+#        alphad = alpha/vr # alpha|min = alphad * vr
+        alphad = alpha
+        gdrs, ers = TensorG(C0, alphad, poison) 
         C1 = C1+T1(vr,tr)
-        print i
+        
         for j in range (len(gr_fam)):
+            
             if j != i:
-                print 'iii', len(gr_fam),j
-                vs = phi_i[i]
-                Cs = Cr_i[i]
+#            if j > i:
+#                print 'iii', len(gr_fam),i, j
+                vs = phi_i[j]
+                Cs = Cr_i[j]
                 dCs = DeltaC(Cs, C0)
-                alphas = alpha_i[i]
-                Gs = TensorG(C0, alphas, poison) 
+                alphas = alpha_i[j]
+                Gs, Es = TensorG(C0, alphas, poison) 
                 ts = T_r (dCs , Gs)
+#                print 'gdrs111\n',alpha, alphas, alpha_i
                 C2 = C2+T2(vr, tr, gdrs, vs, ts)
 #                C2=np.identity(6)
-#        vf = vf+vr
-#        print 'vvff', vf
-        lrhof.append(vr*rhoi)
+        vf = vf+vr
+        if type_i[i]=='cav':
+            vfin += vr
+#        print 'vvff', vr, rhoi
+    
+
 #    C2 = np.identity(6)
+#    print 'CC11\n', C1, '\n',vr*tr+vs*ts
     Ct_ = Ct (C0, C1, C2)
-    for i in range(len(lrhof)):
-        rho_ = (1.0 - vf)*rhom + vf*rhoi
     rho_ = (1-np.sum(phi_i))*rhom+np.dot(rho_i,phi_i)
     lct.append(Ct_)
     lrho.append(rho_)
-    lphi.append(np.sum(phi_i))
-    print 'vr', vf, lphi
+    
+#    print 'vvrvrvrvr\n', Gr,'\n',Gs
+#    for type_ in type_i: 
+#        if type_=='cav': 
+#            vfin = vfin+vr
+#            print vfin,type_, phi_i, 'vfin'
+#    if rtype == 'cav': vfin = vfin+vr
+#    if stype == 'cav': vfin = vfin+vs
+#    lphi.append(vr+vs)
+    lphi.append(vfin)
+#    lphi.append(np.sum(phi_i))
+#    print 'vr', vf, lphi
 #    vs = vr
 #    ts = tr
-    return [lct, lrho, lphi, lpoison]
+    return [lct, lrho, lpoison], lphi
 
-def IncludeSingle (matrix, sfam, cavity):  #ni = number of inclusions
+def IncludeSingle (matrix, sfam, cavity, omega=100):  #ni = number of inclusions
     C0 = matrix[0] 
     rhom = matrix[1]
     poisi = matrix[2]
     inclusion = sfam[0]
     alpha = sfam[1]
     phi_ = sfam[2]
+    type_ = sfam[3]
     Cr = inclusion[0]
     rhoi = inclusion[1]
     lphi = [0]
@@ -1068,13 +1440,14 @@ def IncludeSingle (matrix, sfam, cavity):  #ni = number of inclusions
     
     poison = poisi
     vr = phi_
-    Gr = TensorG(C0, alpha, poison) 
+    Gr,S0 = TensorG(C0, alpha, poison) 
     dC = DeltaC(Cr, C0)
+    cavity = 1
     if cavity == 0: 
         tr = T_r (dC , Gr) # nao considera frequencia
-#        print 'tr1', tr
+#        print 'tr1', C0, Cr, dC
     else: 
-        tr = IncludeT (C0, Cr, Gr, poison, alpha, vr) #considera frequencia
+        tr = IncludeT (C0, Cr, Gr, poison, alpha, vr, omega) #considera frequencia
 #        print tr
 #        print 'tr2', tr
     Ct_ = CSingle (C0, tr, vr, Gr)
@@ -1082,22 +1455,30 @@ def IncludeSingle (matrix, sfam, cavity):  #ni = number of inclusions
     
     lct.append(Ct_)
     lrho.append(rho_)
-    lphi.append(vr)
+    vfin = 0.0
+    if type_ == 'cav': vfin = vfin+vr
+    lphi.append(vfin)
+#    lphi.append(vr)
 #    print 'rhoo', len(lct), rho_, len(lphi), len(lpoison)
 #    print Ct_
-#    lpoison.append(poisi)
-    return [lct, lrho, lphi, lpoison]
+    poiss =poisi
+    if type_ == 'agg': poiss = Poisson(Ct_[0][0]-4./3.*Ct_[3][3],Ct_[3][3])
+    lpoison.append(poiss)
+#    return [Ct_, rho_, poisi], vfin
+    return [lct, lrho, lpoison], lphi
 
-def IncludeDual (matrix, rfam, sfam, cavity):  #ni = number of inclusions
+def IncludeDual (matrix, rfam, sfam, cavity, alphad):  #ni = number of inclusions
     C0 = matrix[0] 
     rhom = matrix[1]
     poisi = matrix[2]
     rinclusion = rfam[0]
     ralpha = rfam[1]
     rphi_ = rfam[2]
+    rtype = rfam[3]
     sinclusion = sfam[0]
     salpha = sfam[1]
     sphi_ = sfam[2]
+    stype = sfam[3]
     
     Cr = rinclusion[0]
     Cs = sinclusion[0]
@@ -1111,43 +1492,60 @@ def IncludeDual (matrix, rfam, sfam, cavity):  #ni = number of inclusions
     lct = [C0]
     
     poison = poisi
-    vr = rphi_
+#    vr = rphi_
     vs = sphi_
-    
-    Gr = TensorG(C0, ralpha, poison)
-    Gs = TensorG(C0, salpha, poison)
-    
-    dCr = DeltaC(Cr, C0)
-    dCs = DeltaC(Cs, C0)
-    
-    if cavity == 0: 
-        tr = T_r (dCr , Gr) # nao considera frequencia
-        ts = T_r (dCs , Gs) # nao considera frequencia
-#        print 'tr1', tr
-    else: 
-        tr = IncludeT (C0, Cr, Gr, poison, ralpha, vr) #considera frequencia
-        ts = IncludeT (C0, Cs, Gs, poison, salpha, vs) #considera frequencia
-#        print tr
-#        print 'tr2', tr
-    alphad = ralpha*0.3
-    gdrs = TensorG(C0, alphad, poison) 
-    C1 = T1(vr, tr)+T1(vs,ts)
-    C2 = T2(vr, tr, gdrs, vs, ts)
-    Ct_ = Ct (C0, C1, C2)
-#    Ct_ = CFam (C0, tr, vr, Gr, ts, vs, gdrs)
-#    print Ct_
-#    rho_ = (1.0 - vr)*rhom + vr*rhor
-    rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
-    lct.append(Ct_)
-    lrho.append(rho_)
-#    lphi.append(vr)
-    lphi.append(vr+vs)
+    for vr in np.linspace(0,rphi_, 500):
+        Gr,E = TensorG(C0, ralpha, poison)
+        Gs,E = TensorG(C0, salpha, poison)
+        
+        dCr = DeltaC(Cr, C0)
+        dCs = DeltaC(Cs, C0)
+        cavity = 0
+        if cavity == 0: 
+            tr = T_r (dCr , Gr) # nao considera frequencia
+            ts = T_r (dCs , Gs) # nao considera frequencia
+    #        print 'tr1', tr
+        else: 
+            tr = IncludeT (C0, Cr, Gr, poison, ralpha, vr) #considera frequencia
+            ts = IncludeT (C0, Cs, Gs, poison, salpha, vs) #considera frequencia
+    #        print tr
+    #    print 'tr2',cavity, ts
+    #    alphad = 0.99
+        gdrs,E = TensorG(C0, alphad, poison) 
+        if vr==vs and tr.all() ==ts.all():
+            C1 = T1(vr, tr)
+            C2 = T2(vr, tr, gdrs, vr, tr)
+            rho_ = (1.0 - vr)*rhom + vr*rhor
+            print 'igual1'
+        else: 
+            C1 = T1(vr, tr)+T1(vs,ts)
+            C2 = T2(vr, tr, gdrs, vs, ts)
+            rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+    #    print 'gdrs222\n',vr, tr, vs, ts
+    #    print 'CC11', C1, C2
+        Ct_ = Ct (C0, C1, C2)
+    #    Ct_ = CFam (C0, tr, vr, Gr, ts, vs, gdrs)
+    #    print Ct_
+    #    rho_ = (1.0 - vr)*rhom + vr*rhor
+        
+    #    rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+        lct.append(Ct_)
+        lrho.append(rho_)
+    #    lphi.append(vr)
+    #    print 'innn\n\n', vr, vs
+        vfin = 0.0
+        if rtype == 'cav': vfin = vfin+vr
+    #    if stype == 'cav': vfin = vfin+vs
+        
+        lphi.append(vr)
+#        lphi.append(vfin)
 #    print 'rhoo', len(lct), rho_, len(lphi), len(lpoison)
 #    print Ct_
 #    lpoison.append(poisi)
-    return [lct, lrho, lphi, lpoison]
+    return [lct, lrho, lpoison], lphi
 
 def main3():
+    import matplotlib.pyplot as plt
 #    Vpm = 5.85 # km/s
 #    Vsm = 3.9 # km/s
 #    rhom = 2.650 # g/cm3
@@ -1160,110 +1558,1068 @@ def main3():
 #    print Km, Gm
 
     #inclusion
-#    quartzo = Quartzo()
+    quartzo = Quartzo()
     calcita = Calcite()
 #    aragonita = Aragonite()
+#    minmatrix = MineralMatriz()
     dolomita = Dolomite()
-#    clay = Clay()
+    clay = Clay()
     dry = Dry()
     water = Water()
     #cavity = 0(isolated)... 1 (exchange)
-    cavity = 0
+    cavity = 1
 #    ni = 4
 #    C0 = quartzo[0]
 #    Ci = calcita[0]
 #    alphai = 0.3
 #    poisi = calcita[2]
-    
-#    print 'ccal',Gi
-    
-#    porosi = 0.
-#    porosf = 0.3
-#    plist = [0.1, 0.2, 0.3]#, 0.4, 0.42, 0.44, 0.45, 0.46, 0.47]
-#    Gi = TensorG(C0, alphai, poisi)
-#    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
-#    G2 = TensorG(Ct[-1], alphai, poisi)
-#    print 'ct\n', C0, '\n', Ct[-1]
-#    Ct, phi = Include (Ct[-1], C2, G2, 0.2, 0.2, ni, rhom, 1.02)
-#    print 'ct\n', Ct[-1]
-    
-#    rhom = calcita[1]
-##    rhoi = water[1]
-#    elemento = element
-#    elemento[0] = element[0][-1]
-#    elemento[1] = element[1][-1]
-#    elemento[2] = element[2][-1]
-#    print water,elemento
-#    sfam = [water, alpha, phi]
-#    fam = [water, 0.3, 0.4]
-    
-    fam1 = [water, 0.99, 0.1]
-    fam2 = [water, 0.99, 0.1]
-    fam3 = [water, 0.99, 0.1]
-    fam4 = [water, 0.4, 0.1]
-    gr_fam = [fam1, fam2, fam3]
-#    gr_fam = [fam1]
-#    for i in range(7): gr_fam.append(fam1)
-#    gr_fam = [fam1, fam2]
-#    phi_fam = [0.1, 0.2]
-#    print water
-#    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
-#    print 'len', len(gr_fam)
-    if len(gr_fam) == 1:
-    #    for inc in gr_fam:
-    #        [Ct, rho, phi, poisct] = IncludeSingle (calcita, water, alphai, porosf, cavity)
-        [Ct, rho, phi, poisct] = IncludeSingle (calcita, gr_fam[0], cavity)
-    else:
-#        [Ct, rho, phi, poisct] = IncludeDual (calcita, fam1, fam2, cavity)
-        [Ct, rho, phi, poisct] = IncludeFam (calcita, gr_fam, cavity)
-
-#    print VoigttoKelvin(Ct[-1])!
-    ni = len(phi)
-    Vp = np.empty(ni)
-    Vs = np.empty(ni)
-    Qp = np.empty(ni)
-    ks= np.empty(ni)
-    kk= np.empty(ni)
-    ksg= np.empty(ni)
-    g= np.empty(ni)
-#    print len(phi), len(ksg), len(Ct)
-    for i in range(len(phi)):
-##        print i
-##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+#    i=0.
+#    cont=0
+#    composito = quartzo
+#    while cont <10:
 #        
-#        print '\n',i, Ct[i][0][0], Ct[i][3][3]
-#        g[i] = Ct[i][3][3]/2
-#        g[i] = Ct[i][3][3]
-#        ks[i] = Ct[i][0][0] - 4./3.*g[i]
-        ksg[i] = Ct[i][0][0]
-        print Ct[i][0][0], phi, rho[i]    
-#        kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+#        fam10 = [clay, 0.05, 0.1, 'agg']
+#        composito, phiii = IncludeSingle (composito, fam10, cavity)
+#        Ctt = composito[0]
+#        rhoo = composito[1]
+#        poiscc = composito[2]
+##        i = i+0.1
+#        cont +=1
+#        ni = len(phiii)
+#        print "ii", cont#, '\n\nqtzo', quartzo, '\n\ncomp', composito, '\n\nsep',Ctt[ni-1], rhoo[ni-1], poiscc[ni-1]
+#        composito = [Ctt[ni-1], rhoo[ni-1], poiscc[ni-1]]
+#    vpp = np.empty(ni)
+#    print 'teste', Ctt[-1], rhoo
+#    vpp = (((Ctt[-1][0][0]/rhoo[-1]).real)**0.5)
+#    print 'teste', vpp, rhoo[-1]
+
+#    fam = [element, alpha, phi, 'type']
+#    for j in range(len(macroporos)):#, 0.5]:
+#    e=10
+#    alpha=0.01
+#    while e>0.01:
+    vpo=[]
+    omega = np.linspace(1,10000000,10000)
+    for j in [1]:
+#        Km= bulk[j]
+#        Gm= shear[j]   
+#        rhom= dens[j]
+#        meso = macroaspect[j]
+#        micro = microaspect[j]
+#        phimeso = macroporos[j]
+#        phimicro = microporos[j]
+        print 'jjj', j
+        phimax = 0.2303
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+        meso = 0.51
+        micro = 0.04
+#    porototal = 0.2303
+        phimeso = 0.141
+        phimicro = 0.0893
+        minmatrix = MineralMatriz(Km, Gm, rhom)        
+        fam1 = [water, 0.05, 0.04, 'cav']
+#        fam1 = [dry, meso, phimeso, 'cav']
+#        print meso, phimeso, micro, phimicro
+#        fam1 = [dry, alpha, phimax, 'cav']
+        fam2 = [dry, micro, phimicro, 'cav']
+#        fam2 = [water, 0.1, 0.0893, 'cav']
+#        fam3 = [dry, a, 0.05]
+#        fam4 = [dry, a, 0.05]
+#        fam5 = [dry, a, 0.05]
+#        fam6 = [dry, a, 0.05]
+#        gr_fam = [fam1, fam2]#, fam3, fam4, fam5]
+#        fam1 = [dry, a, 0.25]
+#        gr_fam = [fam1, fam2]
+        gr_fam = [fam1,fam1]
+#        for i in range(1): gr_fam.append(fam2)
+#        gr_fam = [fam1, fam2]
+    #    phi_fam = [0.1, 0.2]
+    #    print water
+    #    [Ct, rho, phi, poisct] = IncludeIso (calcita, water, alphai, porosf, porosi, ni)
+    #    print 'len', len(gr_fam)
+#        crackdensity = 3.*phi/(4.*np.pi*a)
+        if len(gr_fam) == 1:
+        #    for inc in gr_fam:
+        #        [Ct, rho, phi, poisct] = IncludeSingle (calcita, water, alphai, porosf, cavity)
+            composite, phi = IncludeSingle (calcita, gr_fam[0], cavity, j)
+#            print 'n'
+        else:
+#            composite, phi = IncludeDual (quartzo, fam1, fam2, cavity)
+            composite, phi = IncludeFam (minmatrix, gr_fam, cavity)
+#        print 'result', phi,'\n', calcita,'\n',dry
+        Ct = composite[0]
+        rho = composite[1]
         
-        Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
-        Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**0.5)
-#        Qp[i] = ((Ct[i][0][0]).real)/((Ct[i][0][0]).img)
-#    print ks, rho, g, '\n', Ct[0], '\n\n', Ct[1]
+        poisct = composite[2]
+    #    print VoigttoKelvin(Ct[-1])!
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        ksg= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+            print phi[i], Ct[i][0][0]
+    ##        print i
+    ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+    #        
+    #        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+            g[i] = Ct[i][3][3]/2
+    #        g[i] = Ct[i][3][3]
+            ks[i] = Ct[i][0][0] - 4./3.*g[i]
+#            ksg[i] = Ct[i][0][0]
+#            print Ct[i][0][0], phi, rho[i]    
+            kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+#            print 'vpppss', Ct[i][0][0]
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+#        vpo.append(Vp[-1])
+#        alpha= alpha+0.0001
+#        e = np.abs(Vp[-1]-3.186)
+#        if np.isnan(e): e=10
+#        print e, alpha
+#            Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**-0.5)**-1
+    #        Qp[i] = ((Ct[i][0][0]).real)/((Ct[i][0][0]).img)
+    #    print ks, rho, g, '\n', Ct[0], '\n\n', Ct[1]
+        
+    #    print rho
+            
+        
+    #    print k
+#        plt.subplot(211)
+#        plt.plot(phi, ksg, 'r') # plot c11
+#        plt.plot(phi, ks, 'r')
+        plt.grid()
+        plt.plot(phi, kk, 'y')
+#        plt.plot(phi, g, 'r')
+#    plt.plot(phi, rho, 'r')
+#    plt.grid()
+#    plt.show()
+#        print 'ploto',Vp[-1], vpo
+#        plt.plot(phi, Vp, 'r') # plot vp
+#        plt.plot(phi, Vs, 'r') # plot vp
+#    print 'main1 ultimo vp', Vp[-1], len(vpo), len(omega)
+#    plt.show()
+#    plt.semilogx(omega, vpo, 'r')
+#    plt.xlim(1,10000000)
+    plt.show()
+        
     
-#    print rho
-        
+def main4():
     import matplotlib.pyplot as plt
-#    print k
-    plt.plot(phi, ksg, 'r') # plot c11
-#    plt.plot(phi, ks, 'r')
+    #inclusion
+    quartzo = Quartzo()
+    calcita = Calcite()
+#    aragonita = Aragonite()
+#    minmatrix = MineralMatriz()
+    dolomita = Dolomite()
+    clay = Clay()
+    dry = Dry()
+    water = Water()
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 1
+#    ni = 4
+#    C0 = quartzo[0]
+#    Ci = calcita[0]
+#    alphai = 0.3
+#    poisi = calcita[2]
+#    i=0.
+#    cont=0
+#    composito = quartzo
+#    while cont <10:
+#        
+#        fam10 = [clay, 0.05, 0.1, 'agg']
+#        composito, phiii = IncludeSingle (composito, fam10, cavity)
+#        Ctt = composito[0]
+#        rhoo = composito[1]
+#        poiscc = composito[2]
+##        i = i+0.1
+#        cont +=1
+#        ni = len(phiii)
+#        print "ii", cont#, '\n\nqtzo', quartzo, '\n\ncomp', composito, '\n\nsep',Ctt[ni-1], rhoo[ni-1], poiscc[ni-1]
+#        composito = [Ctt[ni-1], rhoo[ni-1], poiscc[ni-1]]
+#    vpp = np.empty(ni)
+#    print 'teste', Ctt[-1], rhoo
+#    vpp = (((Ctt[-1][0][0]/rhoo[-1]).real)**0.5)
+#    print 'teste', vpp, rhoo[-1]
+
+#    fam = [element, alpha, phi, 'type']
+#    for j in range(len(macroporos)):#, 0.5]:
+#    e=10
+#    alpha=0.01
+#    while e>0.01:
+    vpo=[]
+    omega = np.linspace(1,10000000,10000)
+    for j in [1]:
+#        Km= bulk[j]
+#        Gm= shear[j]   
+#        rhom= dens[j]
+#        meso = macroaspect[j]
+#        micro = microaspect[j]
+#        phimeso = macroporos[j]
+#        phimicro = microporos[j]
+        print 'jjj', j
+        phimax = 0.2303
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+        meso = 0.51
+        micro = 0.04
+#    porototal = 0.2303
+        phimeso = 0.141
+        phimicro = 0.0893
+        alphad=0.99
+        minmatrix = MineralMatriz(Km, Gm, rhom)        
+        fam1 = [dry, 0.99, 0.99, 'cav'] # first order hu
+#        fam1 = [dry, 0.99999, 0.99999, 'cav'] # second order hu
+        print 'crack density', 3.*fam1[2]/(4.*np.pi*fam1[1])
+        gr_fam = [fam1,fam1]
+#        gr_fam = [fam1]
+        if len(gr_fam) == 1:
+            composite, phi = IncludeSingle (minmatrix, gr_fam[0], cavity, j)
+            print 'n', "single"
+        else:
+            composite, phi = TMAFIRST (minmatrix, fam1, cavity)
+#            composite, phi = TMASECOND (minmatrix, fam1, fam1, cavity, alphad)
+#            composite, phi = IncludeDual (minmatrix, fam1, fam1, cavity, alphad)
+            print '\n', "moree", 
+        Ct = composite[0]
+        rho = composite[1]
+#        print len(Ct), len(rho), len(phi), '\n', Ct[-1], phi[-1], rho[-1]
+        poisct = composite[2]
+    #    print VoigttoKelvin(Ct[-1])!
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        c11= np.empty(ni)
+        c12= np.empty(ni)
+        c22= np.empty(ni)
+        c33= np.empty(ni)
+        c44= np.empty(ni)
+        c66= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+#            print len(phi), phi[i], Ct[i], '\n'
+    ##        print i
+    ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+    #        
+    #        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+            g[i] = Ct[i][3][3]/2
+    #        g[i] = Ct[i][3][3]
+            ks[i] = Ct[i][0][0] - 4./3.*g[i]
+            c11[i] = Ct[i][0][0] #c11
+            c12[i] = Ct[i][0][1]
+            c22[i] = Ct[i][1][1]
+            c33[i] = Ct[i][2][2]
+            c44[i] = Ct[i][3][3]/2.
+            c66[i] = Ct[i][5][5]/2.
+#            print Ct[i][0][0], phi, rho[i]    
+            kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+            
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+#            print Ct[i][0][0]
+#        vpo.append(Vp[-1])
+#        alpha= alpha+0.0001
+#        e = np.abs(Vp[-1]-3.186)
+#        if np.isnan(e): e=10
+#        print e, alpha
+#            Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**-0.5)**-1
+    #        Qp[i] = ((Ct[i][0][0]).real)/((Ct[i][0][0]).img)
+    #    print ks, rho, g, '\n', Ct[0], '\n\n', Ct[1]
+        
+    #    print rho
+            
+        
+    #    print k
+#        plt.subplot(211)
+#        print c44
+        crackdens = np.empty(ni)
+        for i in range(len(phi)): 
+            if phi[i]==0:
+                crackdens[i] = 00.
+            else:
+                crackdens[i] = (3.*phi[i])/(4.*np.pi*.99)
+#        print crackdens[0], ksg[0], minmatrix[0][0][0], len(ksg/minmatrix[0][0][0]), crackdens
+#        plt.plot(crackdens, c11/c11[0], 'r') # plot c11
+        plt.plot(phi, c11/c11[0], 'r') # plot c11
+#        plt.plot(phi, c12/c12[0], 'b') # plot c122
+#        plt.plot(phi, c22/c22[0], '.') # plot c22
+#        plt.plot(phi, c33/c33[0], '.') # plot c33
+#        plt.plot(phi, c44/c44[0], 'b') # plot c44
+#        plt.plot(phi, c66/c66[0], 'g') # plot c66
+        plt.xlim(0,0.16)
+        plt.ylim(0,1)
+#        plt.plot(phi, ks, 'r')
+#        plt.grid()
+#        plt.plot(phi, kk, 'y')
+#        plt.plot(phi, g, 'r')
+#    plt.plot(phi, rho, 'r')
+#    plt.grid()
+#    plt.show()
+#        print 'ploto',Vp[-1], vpo
+#        plt.plot(phi, Vp, 'r') # plot vp
+#        plt.plot(phi, Vs, 'r') # plot vp
+#    print 'main1 ultimo vp', Vp[-1], len(vpo), len(omega)
+#    plt.show()
+#    plt.semilogx(omega, vpo, 'r')
+#    plt.xlim(1,10000000)
+#    plt.show()
+#    minmatrix, gr_fam, cavity
+        
+def main5():
+    import matplotlib.pyplot as plt
+    #inclusion
+    quartzo = Quartzo()
+    calcita = Calcite()
+#    aragonita = Aragonite()
+#    minmatrix = MineralMatriz()
+    dolomita = Dolomite()
+    clay = Clay()
+    dry = Dry()
+    water = Water()
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 1
+    vpo=[]
+    omega = np.linspace(1,10000000,10000)
+    for j in [1,2]:
+        print 'jjj', j
+        phimax = 0.2303
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+        meso = 0.51
+        micro = 0.04
+#    porototal = 0.2303
+        phimeso = 0.141
+        phimicro = 0.0893
+        alphad=0.99
+        minmatrix = MineralMatriz(Km, Gm, rhom)        
+#        fam1 = [dry, 0.05, 0.99, 'cav'] # first order hu
+        fam2 = [water, 0.99, 0.99, 'cav'] # second order hu
+        fam1 = [dry, 0.99, 0.99, 'cav'] # second order hu
+        gr_fam = [fam1,fam2]
+        
+        
+        if len(gr_fam) == 1:
+            composite, phi = IncludeSingle (minmatrix, gr_fam[0], cavity, j)
+            
+            print 'n', "single"
+        else:
+#            if j==1:
+##                k = np.ones((3,3))*100000000000000
+#                k = np.identity(3)
+#                fam2 = [water, 0.99, 0.5, 'cav']
+#                omega = 10
+#                composite, phi = SingleComPerm (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+#            if j==1:
+##                k = np.ones((3,3))*100000000000000
+#                k = np.identity(3)
+#                fam2 = [water, 0.99, 0.5, 'cav']
+#                omega = 100000000
+#                composite, phi = SingleComFreq (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+            if j==1:
+##                k = np.ones((3,3))*100000000000000
+#                k = np.identity(3)*0.0001
+#                omega = 10
+                fam1 = [dry, 0.49, 0.5, 'cav'] # second order hu
+                fam2 = [dry, 0.01, 0.5, 'cav'] # second order hu
+                composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad)#, k, omega)
+#                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+            else:
+                k = np.identity(3)#*0.0000001
+                omega = 10
+                fam1 = [dry, 0.49, 0.5, 'cav'] # second order hu
+                fam2 = [dry, 0.01, 0.5, 'cav'] # second order hu
+                gr_fam = [fam1,fam2]
+#                composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad, k, omega)
+                composite, phi = IncludeFam (minmatrix, gr_fam, cavity, alphad, omega)#, k, omega)
+#                composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad)
+#                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+            
+            print '\n', "moree"
+        Ct = composite[0]
+        rho = composite[1]
+        print '\n', (Ct[-1][0][0]/rho[-1])**0.5#, phi[-1], rho[-1]
+        poisct = composite[2]
+    #    print VoigttoKelvin(Ct[-1])!
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        ksg= np.empty(ni)
+        c12= np.empty(ni)
+        c22= np.empty(ni)
+        c33= np.empty(ni)
+        c44= np.empty(ni)
+        c66= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+#            print len(phi), phi[i], Ct[i], '\n'
+    ##        print i
+    ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+    #        
+    #        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+            g[i] = Ct[i][3][3]/2
+    #        g[i] = Ct[i][3][3]
+            ks[i] = Ct[i][0][0] - 4./3.*g[i]
+            ksg[i] = Ct[i][0][0] #c11
+            c12[i] = Ct[i][0][1]
+            c22[i] = Ct[i][1][1]
+            c33[i] = Ct[i][2][2]
+            c44[i] = Ct[i][3][3]
+            c66[i] = Ct[i][5][5]
+#            print Ct[i][0][0], phi, rho[i]    
+            kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+#            print 'vpppss', Ct[i][0][0]
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+
+        crackdens = np.empty(ni)
+        for i in range(len(phi)): 
+            if phi[i]==0:
+                crackdens[i] = 00.
+            else:
+                crackdens[i] = (3.*phi[i])/(4.*np.pi*.99)
+#        print crackdens[0], ksg[0], minmatrix[0][0][0], len(ksg/minmatrix[0][0][0]), crackdens
+#        plt.plot(crackdens, ksg/minmatrix[0][0][0], 'g') # plot c11
+        if j==1:
+            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+#            plt.xscale('symlog')
+#        if j==1:
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+#            plt.xscale('symlog')
+#        if j==2: 
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+        else:
+            plt.plot(phi, ksg/minmatrix[0][0][0], 'g') # plot c11
+#        plt.plot(phi, c12/minmatrix[0][0][1], 'b') # plot c122
+#        plt.plot(phi, c22, 'o') # plot c22
+#        plt.plot(phi, c33/minmatrix[0][2][2], 'b') # plot c33
+#        plt.plot(phi, c44/minmatrix[0][3][3], 'b') # plot c44
+#        plt.plot(phi, c66/minmatrix[0][5][5], 'g') # plot c66
+#        plt.xlim(0,1)
+        plt.ylim(0,1)
+    plt.grid()
+#    plt.show()
+#    minmatrix, gr_fam, cavity
+
+def DualCom (matrix, rfam, sfam, cavity,alphad, k=None, omega=None):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Sinclusion = sfam[0]
+    Salpha = sfam[1]
+    Sphi_ = sfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    Cs = Sinclusion[0]
+    rhos = Sinclusion[1]
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]
+#    Rphi_ = 0.5
+#    Sphi_ = 0.5
+#    Ralpha = 0.99
+#    Salpha = 0.01
+    poison = poisi
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+    Gs, Es = TensorG(C0, Salpha, poison) 
+    dCr = Cr-C0
+    dCs = Cs-C0
+    tr = T_r (dCr , Gr)
+    ts = T_r (dCs , Gs)    
+    Gd, E2 = TensorG (C0, alphad, poison)
+    I6 = np.identity(6)
+    ni =500
+#    print k, omega
+#    if omega:
+#        arqtestes = open("print.txt",'w')
+#    else: 
+#        arqtestes = open("printdry.txt",'w')
+    for p in range(ni)[1:]:
+        vr = p*Rphi_/ni
+        vs = p*Sphi_/ni
+        #novoniterp
+#        alphad = Ralpha
+#        Gd, E2 = TensorG (C0, alphad, poison)
+        if omega:
+#            print 'tem k e omega'
+            tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega)
+            ts = IncludeT (C0, Cs, Gs, poison, Salpha, Sphi_, k, omega)
+        temp1 = vr*tr
+        temp2 = vs*ts
+        temp3 = temp1 + temp2
+        temp4 = I6 + np.dot(Gd, temp3)
+#        tempa = np.dot(temp1,Gd)
+#        tempa2 = np.dot(temp2,Gd)
+#        tempb = np.dot(tempa,temp2)
+#        tempb2 = np.dot(tempa2,temp1)
+#        tempd = tempb + tempb2
+##        print 'temp3', temp3
+#        tempc = np.linalg.inv(temp3)
+#        
+#        temp4 = I6 + np.dot(tempc,tempd)
+        temp5 = np.linalg.inv(temp4)
+        temp6 = np.dot(temp3, temp5)
+#        print temp1[0][0], temp2[0][0],temp4[0][0]
+#        arqtestes.write(str(str(tr[0][0]) +'  '+ str(ts[0][0]) +'  '+ str(temp3[0][0])+ '\n'))
+        Ct = C0 + temp6
+        rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+        lct.append(Ct)
+        lphi.append((vr+vs))
+        lrho.append(rho_)
+#    print 'lenn', temp6
+    return [lct, lrho, lpoison], lphi
+
+def SingleCom (matrix, rfam, cavity,alphad, k, omega):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]    
+    poison = poisi
+#    print 'cr', Cr
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+#    Gr2 = TensorGreen(Ralpha, C0)
+#    print 'grrsss\n', Gr1, '\n\n',Gr2
+    dCr = Cr-C0
+    tr = T_r (dCr , Gr)
+#    tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_)
+    Gd, E2 = TensorG (C0, alphad, poison)
+    I6 = np.identity(6)
+#    tempE1 = I6 - E1
+#    tempE2 = I6 - E2
+#    invtempE1 = np.linalg.inv(tempE1)  
+    ts=tr
+    ni =500
+    for vr in np.linspace(0,Rphi_,ni):       
+        tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega)
+        
+#        temp4 = np.dot(E2, invtempEs)
+#        temp3 = I6 + vs*temp4
+#        invtemp3 = np.linalg.inv(temp3)
+#        temp2 = np.dot(invtempE1, invtemp3)
+#        temp1 = I6 - vr*temp2
+#        Ct = np.dot(C0,temp1)
+        vs=vr
+        temp4 = ts*vs
+        temp3 = I6 + np.dot(Gd,temp4)
+        temp2 = np.linalg.inv(temp3)
+        temp1 = vr*tr
+        Ct = C0 + np.dot(temp1, temp2)  
+        rho_ = (1.0 - vr)*rhom + vr*rhor
+        lct.append(Ct)
+        lphi.append(vr)
+        lrho.append(rho_)
+    return [lct, lrho, lpoison], lphi
+        
+def SingleComPerm (matrix, rfam, cavity,alphad, k, omega):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]    
+    poison = poisi
+#    print 'cr', Cr
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+#    Gr2 = TensorGreen(Ralpha, C0)
+#    print 'grrsss\n', Gr1, '\n\n',Gr2
+    dCr = Cr-C0
+    tr = T_r (dCr , Gr)
+#    tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_)
+    Gd, E2 = TensorG (C0, alphad, poison)
+    I6 = np.identity(6)
+#    tempE1 = I6 - E1
+#    tempE2 = I6 - E2
+#    invtempE1 = np.linalg.inv(tempE1)  
+    ts=tr
+    ni =10
+    vr=Rphi_
+    for perm in np.linspace(0,k[0][0],ni):       
+        tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, perm*k, omega)
+        
+#        temp4 = np.dot(E2, invtempEs)
+#        temp3 = I6 + vs*temp4
+#        invtemp3 = np.linalg.inv(temp3)
+#        temp2 = np.dot(invtempE1, invtemp3)
+#        temp1 = I6 - vr*temp2
+#        Ct = np.dot(C0,temp1)
+        vs=vr
+        temp4 = ts*vs
+        temp3 = I6 + np.dot(Gd,temp4)
+        temp2 = np.linalg.inv(temp3)
+        temp1 = vr*tr
+        Ct = C0 + np.dot(temp1, temp2)  
+        rho_ = (1.0 - vr)*rhom + vr*rhor
+        lct.append(Ct)
+        lphi.append(perm)
+        lrho.append(rho_)
+    return [lct, lrho, lpoison], lphi
+
+def SingleComFreq (matrix, rfam, cavity,alphad, k, omega):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]    
+    poison = poisi
+#    print 'cr', Cr
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+#    Gr2 = TensorGreen(Ralpha, C0)
+#    print 'grrsss\n', Gr1, '\n\n',Gr2
+    dCr = Cr-C0
+    tr = T_r (dCr , Gr)
+#    tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_)
+    Gd, E2 = TensorG (C0, alphad, poison)
+    I6 = np.identity(6)
+#    tempE1 = I6 - E1
+#    tempE2 = I6 - E2
+#    invtempE1 = np.linalg.inv(tempE1)  
+    ts=tr
+    ni =100
+    vr=Rphi_
+    for freq in np.linspace(0,omega,ni):       
+        tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, freq)
+        
+#        temp4 = np.dot(E2, invtempEs)
+#        temp3 = I6 + vs*temp4
+#        invtemp3 = np.linalg.inv(temp3)
+#        temp2 = np.dot(invtempE1, invtemp3)
+#        temp1 = I6 - vr*temp2
+#        Ct = np.dot(C0,temp1)
+        vs=vr
+        temp4 = ts*vs
+        temp3 = I6 + np.dot(Gd,temp4)
+        temp2 = np.linalg.inv(temp3)
+        temp1 = vr*tr
+        Ct = C0 + np.dot(temp1, temp2)  
+        rho_ = (1.0 - vr)*rhom + vr*rhor
+        lct.append(Ct)
+        lphi.append(freq)
+        lrho.append(rho_)
+    return [lct, lrho, lpoison], lphi
+
+def TMAFIRST (matrix, sfam, cavity, omega=100):  #ni = number of inclusions
+    
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    inclusion = sfam[0]
+    alpha = sfam[1]
+    phi_ = sfam[2]
+#    Cr = inclusion[0]
+    rhoi = 0.
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    
+#    C0 = KelvintoVoigt(matrix[0])
+#    Cr = KelvintoVoigt(inclusion[0])
+    
+    lct = [C0]
+    
+    
+    
+    poison = poisi
+    vr = phi_
+    Gr, E = TensorG(C0, alpha, poison) 
+#    Gr2 = TensorGreen (alpha, C0)
+#    E = -np.dot(Gr2,VoigttoKelvin(np.linalg.inv(KelvintoVoigt(C0))))
+#    dC = DeltaC(Cr, C0)
+#    cavity = 1
+#    dC = VoigttoKelvin(DeltaC(Cr, C0))
+    I6 = np.identity(6)
+#    Qr = I6+Gr*(Cr - Ct)
+#    Qs = I6+Gs*(Cs - Ct)
+#    Ct = vr*Cr*Qr*(vs*Qs)**-1
+#    Km = 76.85
+#    Gm = 32.03
+#    a = (3.*Km+Gm)/(9.*Km*Gm)
+#    b = 1./Gm
+#    c = (2*Gm-3*Km)/(18*Km*Gm)
+#    print 'tfirst\n',KelvintoVoigt(C0), '\n\n', np.linalg.inv(C0), '\n',VoigttoKelvin(np.linalg.inv(KelvintoVoigt(C0))),'\n', a,b,c, '\n', E
+    temp3 = I6 - E
+    temp2 = np.linalg.inv(temp3)
+    for vr_ in np.linspace(0,vr,500):
+        temp1 = I6-vr_*temp2
+        Ct = np.dot(C0,temp1)    
+#        print rhom, rhoi
+        rho_ = (1.0 - vr_)*rhom + vr_*rhoi
+        
+        lct.append(Ct)
+        lphi.append(vr_)
+        lrho.append(rho_)
+    return [lct, lrho, lpoison], lphi
+
+def TMASECOND (matrix, rfam, sfam, cavity,alphad, omega=100):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Sinclusion = sfam[0]
+    Salpha = sfam[1]
+    Sphi_ = sfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    Cs = Sinclusion[0]
+    rhos = Sinclusion[1]
+#    alphad = 0.99
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]
+#    Rphi_ = 0.5
+#    Sphi_ = 0.5
+#    Ralpha = 0.99
+#    Salpha = 0.01
+    poison = poisi
+#    Salpha = Ralpha
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+#    Gr2 = TensorGreen (Ralpha, C0)
+#    print 'grss\n', Gr, '\n\n',Gr2, C0
+    Gs, Es = TensorG(C0, Salpha, poison) 
+#    dCr = DeltaC(Cr, C0)
+    dCr = Cr-C0
+    dCs = Cs-C0
+    tr = T_r (dCr , Gr)
+    ts = T_r (dCs , Gs)    
+    Gd, E2 = TensorG (C0, alphad, poison)
+#    Gd = TensorGreen (alphad, C0)
+    I6 = np.identity(6)
+#    vs=vr
+    tempE1 = I6 - E1
+    tempE2 = I6 - E2
+    tempEs = I6 - Es
+    invtempE1 = np.linalg.inv(tempE1)
+#    invtempE2 = np.linalg.inv(tempE2)
+    invtempEs = np.linalg.inv(tempEs)    
+#    ts=tr
+    
+#    Rphi_ = Rphi_*0.5
+#    Sphi_ = Rphi_
+#    Rphi_ = Rphi_+0.1
+    ni =500
+#    for vr in np.linspace(0,Rphi_,ni):
+#        vs=vr
+#        for vs in np.linspace(0,Sphi_,ni):
+#        Gr, E = TensorG(C0, Ralpha, poison)
+#        dCr = DeltaC(Cr, C0)
+#        tr = T_r (dCr , Gr)
+#        alphad = Ralpha/vr
+#        print Ralpha/vr, alphad
+#        Gd = TensorGreen (alphad, C0)
+        
+#        Gd, E = TensorG (C0, alphad, poison)
+#        Gd = TensorGreen (alphad, C0)
+#    for p in range(ni):    
+#        vr = p*Rphi_/ni
+#        vs = p*Sphi_/ni
+#        temp4 = np.dot(E2, invtempEs)
+#        temp3 = I6 + vs*temp4
+#        invtemp3 = np.linalg.inv(temp3)
+#        temp2 = np.dot(invtempE1, invtemp3)
+#        temp1 = I6 - vr*temp2
+#        Ct = np.dot(C0,temp1)
+    
+#        vs=vr
+#        temp4 = ts*vs
+#        temp3 = I6 + np.dot(Gd,temp4)
+#        temp2 = np.linalg.inv(temp3)
+#        temp1 = vr*tr
+#        Ct = C0 + np.dot(temp1, temp2)*2.  
+        
+    for p in range(ni):
+        vr = p*Rphi_/ni
+        vs = p*Sphi_/ni
+        alphad = Ralpha
+        Gd, E2 = TensorG (C0, alphad, poison)
+#        temp4 = ts*vs
+#        temp3 = I6 + np.dot(Gd,temp4)
+#        temp2 = np.linalg.inv(temp3)
+#        temp1 = vr*tr
+#        
+#        temp5 = I6 + np.dot(Gd,temp1)
+#        temp6 = np.linalg.inv(temp5)
+#        Ct = C0 + np.dot(temp1, temp2) + np.dot(temp4,temp6)
+        #novoniterp
+#        tr = T_r (dCr , Gr)
+#        ts = T_r (dCs , Gs) 
+        temp1 = vr*tr
+        temp2 = vs*ts
+        temp3 = temp1 + temp2
+        temp4 = I6 + np.dot(Gd, temp3)
+        temp5 = np.linalg.inv(temp4)
+        temp6 = np.dot(temp3, temp5)
+#        print temp1[0][0], temp2[0][0], temp3[0][0]
+        Ct = C0 + temp6
+#        
+#        print 'trr', tr, np.dot(C0,invtempE1)
+#        rho_ = (1.0 - vr)*rhom + vr*rhor
+        rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+        lct.append(Ct)
+#        lphi.append(vr)
+        lphi.append((vr+vs))
+        lrho.append(rho_)
+#        C0=Ct
+#        print 'COCt', C0[0][0], Ct[0][0], Cr[0][0]
+#    print 'lenn', vr, vs
+    return [lct, lrho, lpoison], lphi
+    
+def mainIrineuTmatrix():
+    import matplotlib.pyplot as plt
+    #inclusion
+    quartzo = Quartzo()
+    calcita = Calcite()
+#    aragonita = Aragonite()
+#    minmatrix = MineralMatriz()
+    dolomita = Dolomite()
+    clay = Clay()
+    dry = Dry()
+    water = Water()
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 1
+    e=10
+    alpha=0.001
+    alphad=0.99
+    k=np.identity(3)
+    omega=10.
+    while e>0.01:
+        vpo=[]
+#        omega = np.linspace(1,10000000,10000)
+#    for j in [1]:
+#        Km= bulk[j]
+#        Gm= shear[j]   
+#        rhom= dens[j]
+#        meso = macroaspect[j]
+#        micro = microaspect[j]
+#        phimeso = macroporos[j]
+#        phimicro = microporos[j]
+#        print 'jjj', j
+        phimax = 0.2303
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+        alphameso = 0.51
+        alphamicro = 0.04
+#    porototal = 0.2303
+        phimeso = 0.141
+        phimicro = 0.0893
+        minmatrix = MineralMatriz(Km, Gm, rhom)        
+#        fam1 = [water, 0.1, 0.3, 'cav']
+        fam1 = [dry, alphameso, phimeso, 'cav']
+#        print meso, phimeso, micro, phimicro
+#        fam1 = [dry, alpha, phimax, 'cav']
+        fam2 = [dry, alpha, phimicro, 'cav']
+        gr_fam = [fam1, fam2]
+        
+        if len(gr_fam) == 1:
+            composite, phi = IncludeSingle (calcita, gr_fam[0], cavity, j)
+#            print 'n'
+        else:
+#            composite, phi = IncludeDual (quartzo, fam1, fam2, cavity)
+            composite, phi = IncludeFam (minmatrix, gr_fam, cavity, k, omega)
+            composite, phi = TMAIrineu (minmatrix, fam1, fam2, cavity, alphad)#, k, omega)
+#            composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad)
+#            composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+        Ct = composite[0]
+        rho = composite[1]
+        poisct = composite[2]
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        ksg= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+            Vs[i] = (((Ct[i][3][3]/(2.*rho[i])).real)**-0.5)**-1
+#        vpo.append(Vp[-1])
+        alpha= alpha+0.00002
+        e = np.abs(Vp[-1]-3.186)
+        if np.isnan(e): e=10
+        print e, alpha#, len(phi), len(Vp), Vp[-1], Vs[-1], Ct[i][0][0], Ct[i][3][3]
 #    plt.plot(phi, kk, 'y')
 #    plt.plot(phi, g, 'r')
 #    plt.plot(phi, rho, 'r')
 #    plt.grid()
 #    plt.show()
-    print 'plot', phi, kk
-#    plt.plot(phi, Vp, 'r') # plot vp
-#    plt.show()
-#    plt.plot(phi, Qp, 'r')
-#    plt.show()
+#        print 'ploto',Vp[-1], vpo
+    plt.plot(phi, Vp, 'r') # plot vp
+    plt.show()
+    
+def TMAIrineu (matrix, rfam, sfam, cavity,alphad):  #ni = number of inclusions
+    C0 = matrix[0] 
+    rhom = matrix[1]
+    poisi = matrix[2]
+    Rinclusion = rfam[0]
+    Ralpha = rfam[1]
+    Rphi_ = rfam[2]
+    Sinclusion = sfam[0]
+    Salpha = sfam[1]
+    Sphi_ = sfam[2]
+    Cr = Rinclusion[0]
+    rhor = Rinclusion[1]
+    Cs = Sinclusion[0]
+    rhos = Sinclusion[1]
+#    alphad = 0.99
+    lphi = [0]
+    lrho = [rhom]
+    lpoison = [poisi]
+    lct = [C0]
+#    Rphi_ = 0.5
+#    Sphi_ = 0.5
+#    Ralpha = 0.99
+#    Salpha = 0.01
+    poison = poisi
+#    Salpha = Ralpha
+    Gr, E1 = TensorG(C0, Ralpha, poison) 
+#    Gr2 = TensorGreen (Ralpha, C0)
+    print 'alphasss\n', Ralpha, Salpha
+    Gs, Es = TensorG(C0, Salpha, poison) 
+#    dCr = DeltaC(Cr, C0)
+    dCr = Cr-C0
+    dCs = Cs-C0
+    tr = T_r (dCr , Gr)
+    ts = T_r (dCs , Gs)    
+    Gd, E2 = TensorG (C0, alphad, poison)
+#    Gd = TensorGreen (alphad, C0)
+    I6 = np.identity(6)
+#    vs=vr
+    tempE1 = I6 - E1
+    tempE2 = I6 - E2
+    tempEs = I6 - Es
+    invtempE1 = np.linalg.inv(tempE1)
+#    invtempE2 = np.linalg.inv(tempE2)
+    invtempEs = np.linalg.inv(tempEs)    
+#    ts=tr
+    
+    vr = Rphi_# = Rphi_*0.5
+    vs = Sphi_# = Rphi_
+#    Rphi_ = Rphi_+0.1
+    ni =500
+#    for vr in np.linspace(0,Rphi_,ni):
+#        vs=vr
+#        for vs in np.linspace(0,Sphi_,ni):
+#        Gr, E = TensorG(C0, Ralpha, poison)
+#        dCr = DeltaC(Cr, C0)
+#        tr = T_r (dCr , Gr)
+#        alphad = Ralpha/vr
+#        print Ralpha/vr, alphad
+#        Gd = TensorGreen (alphad, C0)
+        
+#        Gd, E = TensorG (C0, alphad, poison)
+#        Gd = TensorGreen (alphad, C0)
+#    for p in range(ni):    
+#        vr = p*Rphi_/ni
+#        vs = p*Sphi_/ni
+#        temp4 = np.dot(E2, invtempEs)
+#        temp3 = I6 + vs*temp4
+#        invtemp3 = np.linalg.inv(temp3)
+#        temp2 = np.dot(invtempE1, invtemp3)
+#        temp1 = I6 - vr*temp2
+#        Ct = np.dot(C0,temp1)
+    
+#        vs=vr
+#        temp4 = ts*vs
+#        temp3 = I6 + np.dot(Gd,temp4)
+#        temp2 = np.linalg.inv(temp3)
+#        temp1 = vr*tr
+#        Ct = C0 + np.dot(temp1, temp2)*2.  
+        
+#    for p in range(ni):
+#        vr = p*Rphi_/ni
+#        vs = p*Sphi_/ni
+#        temp4 = ts*vs
+#        temp3 = I6 + np.dot(Gd,temp4)
+#        temp2 = np.linalg.inv(temp3)
+#        temp1 = vr*tr
+#        
+#        temp5 = I6 + np.dot(Gd,temp1)
+#        temp6 = np.linalg.inv(temp5)
+#        Ct = C0 + np.dot(temp1, temp2) + np.dot(temp4,temp6)
+        #novoniterp
+#        tr = T_r (dCr , Gr)
+#        ts = T_r (dCs , Gs) 
+    temp1 = vr*tr
+    temp2 = vs*ts
+    temp3 = temp1 + temp2
+    temp4 = I6 + np.dot(Gd, temp3)
+    temp5 = np.linalg.inv(temp4)
+    temp6 = np.dot(temp3, temp5)
+#    print 'vrrrr',vr,vs
+    Ct = C0 + temp6
+#        
+#        print 'trr', tr, np.dot(C0,invtempE1)
+#        rho_ = (1.0 - vr)*rhom + vr*rhor
+    rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+    lct.append(Ct)
+#        lphi.append(vr)
+    lphi.append((vr+vs))
+    lrho.append(rho_)
+#        C0=Ct
+#        print 'COCt', C0[0][0], Ct[0][0], Cr[0][0]
+#    print 'lenn', vr, vs
+    return [lct, lrho, lpoison], lphi
+
 if __name__ == '__main__':
-    main3()
 #    main4()
-    main1()
+    main5()
+#    main4()
+#    main1()
+#    mainIrineuDem()
+#    mainIrineuTmatrix()
+
+#    import matplotlib.pyplot as plt
+#    plt.figure()
+#    plt.subplot(211)
+#    a= [1,3,5]
+#    b= [5,5,5]
+#    plt.plot(a,b)
+#    plt.subplot(212)
+#    a= [1,3,5]
+#    b= [5,5,5]
+#    plt.plot(a,a)
+#    plt.show()
 #    i4 = Id4()
 #    print KelvintoVoigt(VoigttoKelvin(TensortoVoigt(i4)))
     
