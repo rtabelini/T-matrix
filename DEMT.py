@@ -1,7 +1,3 @@
-"""
-From Berryman 1980
-"""
-
 import numpy as np
 shear = []
 bulk=[]
@@ -12,11 +8,23 @@ microporos=[]
 microaspect=[]
 vvp=[]
 vvs=[]
+a10_plug_poros = []
+a10_plug_perm = []
 #    arqshear = open("shear.txt",'r')
 #    tshear = arqshear.readlines()
 #    for i in range(len(tshear)):
 #        shear.append(float(tshear[i].strip()))
     
+arqa10_plug_poros = open("a10_plug_poros.txt",'r')
+ta10_plug_poros = arqa10_plug_poros.readlines()
+for i in range(len(ta10_plug_poros)):
+    a10_plug_poros.append(float(ta10_plug_poros[i].strip()))
+    
+arqa10_plug_perm = open("a10_plug_perm.txt",'r')
+ta10_plug_perm = arqa10_plug_perm.readlines()
+for i in range(len(ta10_plug_perm)):
+    a10_plug_perm.append(float(ta10_plug_perm[i].strip()))
+
 arqbulk = open("km_irineu.txt",'r')
 tbulk = arqbulk.readlines()
 for i in range(len(tbulk)):
@@ -283,6 +291,142 @@ def mainIrineuDem():
     plt.show()
     
     
+def dem_log(rock, fluid, phit, rhob, inclusion1, inclusion2):
+#    rock=(km,gm,rhom)
+#    fluid= (kf,rhof)
+#    phit= log
+#    rhob = log
+#    inclusion = (fraction, alpha)
+#    rhob = (1-phi)*rhom + phi*rhof
+
+    frac1 = inclusion1[0]
+    alpha1 = inclusion1[1]
+    poros1 = frac1*phit
+    frac2 = inclusion2[0]
+    alpha2 = inclusion2[1]
+    poros2 = frac2*phit
+#    fam1 = (fluid, 1./alpha1, poros1, 'cav')
+#    fam2 = (fluid, 1./alpha2, poros2, 'cav')
+#    alphad = 1./alphadual
+    
+    import matplotlib.pyplot as plt
+    import Gassmann
+#    rhom = rock[2] # g/cm3
+#    Vpf = 1.6 # km/s
+    rhof = fluid[1] # g/cm3
+#    rhof = 0.2 # g/cm3
+#    phimax = 0.6
+    Gm= rock[1]
+    Km= rock[0]
+    rhom= rock[2]
+    Kf = fluid[0]
+
+    alphameso = alpha1
+    phimeso = poros1
+    alphamicro = alpha2
+    phimicro = poros2
+    
+    for alpha in [0.1]:
+##    for alpha in aspect:
+##    for p in [0.2, 0.4, 0.6, 0.8,1]:
+##        for alpha in [0.15, 0.02, 0.8]:
+##        alphai = alpha
+##        if alpha != 0.15:
+##            alphai = p*alpha + (1-p)*0.15
+#        K, G, phi = DEM(Km[i], Gm[i], np.array([0.0]), np.array([0.0]), np.array([alphameso[i]]), np.array([phimeso[i]]))
+#            K, G, phi = DEM(K[-1], G[-1], np.array([0.0]), np.array([0.0]), np.array([alphamicro]), np.array([phimicro[i]]), phi[-1])
+        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([alpha]), np.array([phit]))
+##        print'kmmm \n', K,'\n\n', G, ' \n mm\n ', Km, Gm
+#        
+##        for i in range(len(phi)):
+##            if alpha ==0.15: 
+##                phi_ref = phi
+##            else:
+##                phi = 0.8*phi + 0.2*phi_ref
+#        K, G, phi = DEM(Km, Gm, np.array([0.0]), np.array([0.0]), np.array([meso]), np.array([phimeso]))
+    #    print 'KKK', Km, K,!
+#        K, G, phi = DEM(K[-1], G[-1], np.array([0.0]), np.array([0.0]), np.array([micro]), np.array([phimicro]), phi[-1])
+    
+#        rho = (1.0 - phi)*rhom# + phi*rhof #dry
+        rho = (1.0 - phi)*rhom + phi*rhof #sat
+        Ks = Gassmann.Ks(K, Km, Kf, phi) #sat
+#        rho = rhom
+#        Ks = K #dry
+        Ks = np.insert(Ks,0,Km)
+        phi = np.insert(phi,0,0.)
+        G = np.insert(G,0,Gm)
+        rho = np.insert(rho,0,rhom)
+        Vp = np.sqrt((Ks + 4.0*G/3.0)/rho)
+        Vs = np.sqrt(G/rho)
+        k_reuss = (phi/Kf + (1 - phi)/Km)**(-1)
+        k_voigt = phi*Kf+ (1 - phi)*Km
+#        print 'mai1', rho[-1], G[-1], phi[0], Vs[-1]
+    
+#            vp_ref.append(Vp)
+#        
+#            phi = p*phic + (1-p)*phir
+#        if alpha != 0.15:
+#        for prop in [0.2, 0.4, 0.6, 0.8]:
+#            Vp = prop*vp_ref + (1-prop)*Vp
+#        if alpha == ref:
+#            plt.plot(phi, Vp, 'b')
+#            
+#        if alpha > ref:
+#            plt.plot(phi, Vp, 'b--')
+#        else:
+#            plt.plot(phi, Vp, 'b-.')]
+#        print '\nultimovp',Vp[-1]
+#        plt.plot(phi, Vp, 'b')             # plot vp
+#        alpha= alpha+0.0001
+#        e = np.abs(Vp[-1]-3.186)
+#        print e, alpha
+#        plt.plot(phi, Vs, 'b')
+#        plt.plot(phi, rho, 'g')
+#        plt.subplot(211)
+        crackdens = np.empty(len(phi))
+        for i in range(len(phi)): 
+            if phi[i]==0:
+                crackdens[i] = 00.
+            else:
+                crackdens[i] = (3.*phi[i])/(4.*np.pi*alpha)
+#        plt.plot(crackdens, Ks/(Ks[0]), 'g')
+        plt.plot(phi, Ks/(Ks[0]), 'g')
+#        plt.plot(phi, rho, 'g')
+#        plt.plot(phi, Vp, 'g')
+#        plt.plot(phi, Vs, 'g')
+#        plt.grid()
+#        print Ks
+#        plt.subplot(212)
+#        plt.plot(phi, Ks, 'g')
+#        plt.plot(phi, G, 'g')
+#        for i in range (len(Ks)):
+#            if i !=0:
+#                print (Ks[i] + 4.0*G[i]/3.0)-(Ks[i-1] + 4.0*G[i-1]/3.0)
+        #(Ks + 4.0*G/3.0)
+#        plt.plot(phi, k_reuss, 'g')
+#        plt.plot(phi, (Ks + 4.0*G/3.0), 'b')       # plot c11
+#        plt.plot(phi, k_voigt, 'g')
+
+        
+    for i in range(len(macroporos)):
+        
+        if bulk[i] ==0.:
+#            i=1
+#            print 'iii'
+            macroporos.pop(i)
+            bulk.pop(i)
+            cont = cont+1
+            print 'len',len(macroporos), len(bulk), cont
+        else: 
+            i=1
+##            print '\nporos', macroporos[i]+microporos[i], vvp[i]
+#            plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+##            plt.plot(poros[i],vvp[i],'o')
+#    print 'vpp', Vp[-1]
+#    plt.xlim(0, 0.5)
+    plt.grid(True)
+#    plt.show()
+
 def main1():
     import matplotlib.pyplot as plt
     import Gassmann
@@ -291,6 +435,7 @@ def main1():
     rhom = 2.65 # g/cm3
 #    Vpf = 1.6 # km/s
     rhof = 1.1 # g/cm3
+#    rhof = 0.2 # g/cm3
     phimax = 0.6
     
 #    Gm = Vsm*Vsm*rhom # GPa
@@ -306,6 +451,7 @@ def main1():
 #    Gm = 44.3
 #    rhom = 2.65
     Kf = 2.2
+#    Kf = 0.09
 #    Gm2= 94.9 #dolomite
 #    Km2= 38.8
 #    rhom2= 2.92
@@ -370,7 +516,7 @@ def main1():
 #            rhof = 0.
 #            Kf = 0.
 #        print Kf, rhof
-    for alpha in [0.01, 0.1, 0.5]:
+    for alpha in [0.1]:
 ##    for alpha in aspect:
 ##    for p in [0.2, 0.4, 0.6, 0.8,1]:
 ##        for alpha in [0.15, 0.02, 0.8]:
@@ -432,9 +578,9 @@ def main1():
             else:
                 crackdens[i] = (3.*phi[i])/(4.*np.pi*alpha)
 #        plt.plot(crackdens, Ks/(Ks[0]), 'g')
-#        plt.plot(phi, Ks/(Ks[0]), 'g')
+        plt.plot(phi, Ks/(Ks[0]), 'g')
 #        plt.plot(phi, rho, 'g')
-        plt.plot(phi, Vp, 'g')
+#        plt.plot(phi, Vp, 'g')
 #        plt.plot(phi, Vs, 'g')
 #        plt.grid()
 #        print Ks
@@ -604,6 +750,17 @@ def MineralMatriz (Km = 76.85, Gm = 32.03, rho = 2.710):
     Ccal_ = CVoigttoKelvin(Ccal)
 #    print 'ccalal', Ccal,'\n', Ccal_
     return [Ccal_, rho, poiscal]
+
+def FluidSat (Km = 2.2, rho = 1.1, visc=0.001):
+    FluidS = np.zeros((6,6))
+    FluidS[0][0]=FluidS[1][1]=FluidS[2][2] = Km
+    FluidS[3][3]=FluidS[4][4]=FluidS[5][5] = 0
+    FluidS[0][1]=FluidS[0][2]=FluidS[1][0]=FluidS[1][2]=FluidS[2][0]=FluidS[2][1] = Km
+    poisfluid = 0.5
+#    print 'minmatr', Ccal[0][0]
+    FluidS_ = CVoigttoKelvin(FluidS)
+#    print 'ccalal', Ccal,'\n', Ccal_
+    return [FluidS_, rho, poisfluid, visc]
     
 def Clayxx ():
 
@@ -638,7 +795,7 @@ def Water ():
     Cw[0][2] = Cw[1][2] = Cw[2][0] = Cw[2][1] = 2.2
     Cw[5][5] = 0
     Cw[4][4] = Cw[3][3] = 0
-    viscow = 1.
+    viscow = 0.001 #1cp = 10^-3 Pa.s
 #    phiwat = 0.2
 #    alphawat = 0.2
     poisw = 0.5
@@ -1208,7 +1365,7 @@ def T2 (vr, tr, gdrs, vs, ts):
     temp4 = np.dot(temp3, vs)
     return temp4
     
-def IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega):  #ni = number of inclusions
+def IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega, rhom, viscr):  #ni = number of inclusions
 #    print 'kmoega\n', k, omega
     if omega==0.: omega=1.
     kfl = Cr[0][0]    
@@ -1217,12 +1374,12 @@ def IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega):  #ni = number of inclusi
 #    freq = 100
 #    omega = 2*np.pi*freq
 #    omega = 100000000
-    vpm = 5.850
+    vpm = ((C0[0][0]+4.*C0[3][3]/3)/rhom)**0.5
     ku = np.array([omega/vpm,omega/vpm,omega/vpm]) 
 #    ku = omega/vpm
-    kv = np.array([omega/vpm,omega/vpm,omega/vpm]) 
-    tal = 0.000001
-    visc = 0.00001
+    kv = np.array([omega/vpm,omega/vpm,omega/vpm])
+    tal = 0.00001
+#    visc = 0.001
     perm = k
     
     dry = Dry()
@@ -1238,17 +1395,18 @@ def IncludeT (C0, Cr, Gr, poison, alpha, vr, k, omega):  #ni = number of inclusi
     
     gamma = Gamma(kfl, kdry, S0)
 #    print 'freqqq\n',omega
-    theta = Theta(kfl, S0, omega, visc, vr, gamma, tal, kdry, ku, kv, perm)
+    theta = Theta(kfl, S0, omega, viscr*(10**-9), vr, gamma, tal, kdry, ku/1000, kv/1000, perm*(10**-12))
+#    theta = Theta(kfl, S0, omega, viscr, vr, gamma, tal, kdry, ku, kv, perm)
     
     zeta = Zeta(tdry, S0, vr, omega, tal, gamma)
-    qui = Qui(tdry, S0);
+    qui = Qui(tdry, S0)
     temp1 = np.dot(theta, zeta)
     temp2 = np.complex(0,1)*omega*tal*np.dot(kfl, qui)
 #    print 't', theta
     temp3 = 1.+np.complex(0,1)*omega*tal*gamma
 #    print 't', temp1, '\n', temp2, '\n', temp3
     tsat = tdry + (temp1 + temp2)/(temp3)
-#    print  'ttt', theta, zeta
+#    print  '\ntttsat\n', tsat, '\ntdry\n', (temp1 + temp2)/(temp3), vpm, viscr
     return tsat
     
 def IncludeDem (mineral1, fluido2, alpha, phimax, curphi, ni):  #ni = number of inclusions
@@ -2173,6 +2331,159 @@ def main6():
         alphad=1./0.1
         minmatrix = MineralMatriz(Km, Gm, rhom)
 #        print minmatrix[0][0]        
+#        fam = [dry, alpha, phi, 'cav']
+#        fam1 = [dry, 0.05, 0.99, 'cav'] # first order hu
+        fam2 = [water, 0.99, 0.99, 'cav'] # second order hu
+        fam1 = [dry, 0.99, 0.99, 'cav'] # second order hu
+        gr_fam = [fam1,fam2]
+        
+        
+        if len(gr_fam) == 1:
+            composite, phi = IncludeSingle (minmatrix, gr_fam[0], cavity, j)
+            
+#            print 'n', "single"
+        else:
+#            if j==1:
+#                k = np.ones((3,3))*10**3
+###                k = np.identity(3)
+#                fam2 = [methane, 0.99, 0.49, 'cav']
+#                omega = 100
+#                print 'j=1'#abaixo phi = perm (retorna array de perm)
+#                composite, phi = SingleComPerm (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+                
+            if j==1:
+#                k = np.ones((3,3))*10**10
+                k = np.identity(3)
+#                fam2 = [water, 0.09, 0.09, 'cav']
+                fam1 = [water, 1./0.1, 0.3, 'cav'] 
+                omega = 10**8
+                composite, phi = SingleComFreq (minmatrix, fam1, cavity, alphad, k, omega)#single cavity comunicating
+#            if j==1:
+##                k = np.ones((3,3))*100000000000000
+#                k = np.identity(3)*0.0001
+#                omega = 10
+#                fam1 = [water, 0.99, 0.5, 'cav'] # second order hu
+#                fam2 = [water, 0.99, 0.5, 'cav'] # second order hu
+#                composite, phi = TMAFIRST (minmatrix, fam1, cavity)
+#                composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad)#, k, omega)
+#                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+            else:
+                k = np.identity(3)
+                omega = 100
+                fam1 = [water, 1./0.1, 0.5, 'cav'] # second order hu
+                fam2 = [water, 1./0.1, 0.5, 'cav'] # second order hu
+#                gr_fam = [fam1,fam2]
+#                composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad, k, omega)
+#                composite, phi = IncludeFam (minmatrix, gr_fam, cavity, alphad, omega)#, k, omega)
+#                composite, phi = mainTMADem(minmatrix,fam1, fam2, cavity,alphad)
+#                composite, phi = TMAFIRST (minmatrix, fam1, cavity)
+                composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad, k, omega)
+#                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
+            
+#            print '\n', "moree"
+        Ct = composite[0]
+        rho = composite[1]
+#        plt.plot (phi, rho)
+#        print '\n', (Ct[-1][0][0]/rho[-1])**0.5#, phi[-1], rho[-1]
+        poisct = composite[2]
+    #    print VoigttoKelvin(Ct[-1])!
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        ksg= np.empty(ni)
+        c12= np.empty(ni)
+        c22= np.empty(ni)
+        c33= np.empty(ni)
+        c44= np.empty(ni)
+        c66= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+#            print len(phi), phi[i], Ct[i], '\n'
+    ##        print i
+    ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+    #        
+    #        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+            g[i] = Ct[i][3][3]/2
+    #        g[i] = Ct[i][3][3]
+            ks[i] = Ct[i][0][0] - 4./3.*g[i]
+            ksg[i] = Ct[i][0][0] #c11
+            c12[i] = Ct[i][0][1]
+            c22[i] = Ct[i][1][1]
+            c33[i] = Ct[i][2][2]
+            c44[i] = Ct[i][3][3]
+            c66[i] = Ct[i][5][5]
+#            print Ct[i][0][0], phi, rho[i]    
+            kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+#            print 'vpppss', Ct[i][0][0]
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+
+        crackdens = np.empty(ni)
+        for i in range(len(phi)): 
+            if phi[i]==0:
+                crackdens[i] = 00.
+            else:
+                crackdens[i] = (3.*phi[i])/(4.*np.pi*.99)
+#        print crackdens[0], ksg[0], minmatrix[0][0][0], len(ksg/minmatrix[0][0][0]), crackdens
+#        plt.plot(crackdens, ksg/minmatrix[0][0][0], 'g') # plot c11
+        if j==1:
+            plt.plot(phi[1:], ksg[1:], 'b') # plot c11
+            plt.xscale('symlog')
+#        if j==1:
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+#            plt.xscale('symlog')
+#        if j==2: 
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+        else:
+#            plt.plot(phi, g, 'b') # plot c11
+#            plt.plot(phi, ks, 'b') # plot c11
+            plt.plot(phi, ks/ks[0], 'b') # plot c11
+#            plt.plot(phi[1:], Vp[1:], 'b') # plot c11
+#            plt.plot(phi[1:], rho[1:], 'b') # plot c11
+#        plt.plot(phi, c12/minmatrix[0][0][1], 'b') # plot c122
+#        plt.plot(phi, c22, 'o') # plot c22
+#        plt.plot(phi, c33/minmatrix[0][2][2], 'b') # plot c33
+#        plt.plot(phi, c44/minmatrix[0][3][3], 'b') # plot c44
+#        plt.plot(phi, c66/minmatrix[0][5][5], 'g') # plot c66
+#        plt.xlim(0,0.5)
+#        plt.ylim(0,80)
+    plt.grid(True)
+#    plt.show()
+#    minmatrix, gr_fam, cavity
+    
+def main7():
+    import matplotlib.pyplot as plt
+    #inclusion
+    quartzo = Quartzo()
+    calcita = Calcite()
+#    aragonita = Aragonite()
+#    minmatrix = MineralMatriz()
+    dolomita = Dolomite()
+    clay = Clay()
+    dry = Dry()
+    water = Water()
+    methane = Methane()
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 1
+    vpo=[]
+    omega = np.linspace(1,10000000,10000)
+    for j in [2]:
+        print 'jjj', j
+        phimax = 0.2303
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+        meso = 0.51
+        micro = 0.04
+#    porototal = 0.2303
+        phimeso = 0.141
+        phimicro = 0.0893
+        alphad=1./0.1
+        minmatrix = MineralMatriz(Km, Gm, rhom)
+#        print minmatrix[0][0]        
 #        fam1 = [dry, 0.05, 0.99, 'cav'] # first order hu
         fam2 = [water, 0.99, 0.99, 'cav'] # second order hu
         fam1 = [dry, 0.99, 0.99, 'cav'] # second order hu
@@ -2208,8 +2519,8 @@ def main6():
 #                composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad)#, k, omega)
 #                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
             else:
-                k = np.identity(3)
-                omega = 10
+                k = np.identity(3)*100000
+                omega = 100
                 fam1 = [water, 1./0.1, 0.7, 'cav'] # second order hu
                 fam2 = [water, 1./0.1, 0.3, 'cav'] # second order hu
 #                gr_fam = [fam1,fam2]
@@ -2217,7 +2528,7 @@ def main6():
 #                composite, phi = IncludeFam (minmatrix, gr_fam, cavity, alphad, omega)#, k, omega)
 #                composite, phi = mainTMADem(minmatrix,fam1, fam2, cavity,alphad)
 #                composite, phi = TMAFIRST (minmatrix, fam1, cavity)
-#                composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad)
+#                composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad, k , omega)
 #                composite, phi = SingleCom (minmatrix, fam2, cavity, alphad, k, omega)#single cavity comunicating
             
 #            print '\n', "moree"
@@ -2279,8 +2590,8 @@ def main6():
 #            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
         else:
 #            plt.plot(phi, g, 'b') # plot c11
-            plt.plot(phi, ks, 'b') # plot c11
-#            plt.plot(phi, ks/ks[0], 'b') # plot c11
+#            plt.plot(phi, ks, 'r') # plot c11
+            plt.plot(phi, ks/ks[0], 'r') # plot c11
 #            plt.plot(phi[1:], Vp[1:], 'b') # plot c11
 #            plt.plot(phi[1:], rho[1:], 'b') # plot c11
 #        plt.plot(phi, c12/minmatrix[0][0][1], 'b') # plot c122
@@ -2289,11 +2600,129 @@ def main6():
 #        plt.plot(phi, c44/minmatrix[0][3][3], 'b') # plot c44
 #        plt.plot(phi, c66/minmatrix[0][5][5], 'g') # plot c66
 #        plt.xlim(0,0.5)
-        plt.ylim(0,80)
+#        plt.ylim(0,80)
     plt.grid(True)
 #    plt.show()
 #    minmatrix, gr_fam, cavity
     
+
+def tmatrix_log(rock, fluid, phit, rhob, perm, inclusion1, inclusion2, alphadual, method):
+#    rock=(km,gm,rhom)
+#    fluid= (kf,rhof)
+#    phit= log
+#    rhob = log
+#    perm = core
+#    method = {first, higher}
+#    inclusion = (fraction, alpha)
+    
+    omega = 4000 #well log    
+    minmatrix = MineralMatriz(rock[0], rock[1], rock[2]) 
+    fluidsat = FluidSat(fluid[0], fluid[1])
+    frac1 = inclusion1[0]
+    alpha1 = inclusion1[1]
+    poros1 = frac1*phit
+    frac2 = inclusion2[0]
+    alpha2 = inclusion2[1]
+    poros2 = frac2*phit
+    fam1 = (fluidsat, 1./alpha1, poros1, 'cav')
+    fam2 = (fluidsat, 1./alpha2, poros2, 'cav')
+    alphad = 1./alphadual
+    import matplotlib.pyplot as plt
+    #inclusion
+    #cavity = 0(isolated)... 1 (exchange)
+    cavity = 1
+    for j in [2]:
+        print 'jjj', j
+        Km= 76.85
+        Gm= 32.03    
+        rhom= 2.71
+
+               
+        if method == 'first':
+            composite, phi = IncludeSingle (minmatrix, fam1, cavity, omega)
+        else:
+#            fam1 = [water, 1./0.1, 0.7, 'cav'] # second order hu
+#            fam2 = [water, 1./0.1, 0.3, 'cav'] # second order hu
+#                gr_fam = [fam1,fam2]
+            composite, phi = DualCom (minmatrix, fam1, fam2, cavity, alphad, perm, omega)
+#                composite, phi = IncludeFam (minmatrix, gr_fam, cavity, alphad, omega)#, k, omega)
+#                composite, phi = TMAFIRST (minmatrix, fam1, cavity)
+#                composite, phi = TMASECOND (minmatrix, fam1, fam2, cavity, alphad, k , omega)
+        
+#            print '\n', "moree"
+        Ct = composite[0]
+        rho = composite[1]
+#        plt.plot (phi, rho)
+#        print '\n', (Ct[-1][0][0]/rho[-1])**0.5#, phi[-1], rho[-1]
+        poisct = composite[2]
+    #    print VoigttoKelvin(Ct[-1])!
+        ni = len(phi)
+        Vp = np.empty(ni)
+        Vs = np.empty(ni)
+        Qp = np.empty(ni)
+        ks= np.empty(ni)
+        kk= np.empty(ni)
+        ksg= np.empty(ni)
+        c12= np.empty(ni)
+        c22= np.empty(ni)
+        c33= np.empty(ni)
+        c44= np.empty(ni)
+        c66= np.empty(ni)
+        g= np.empty(ni)
+    #    print len(phi), len(ksg), len(Ct)
+        for i in range(len(phi)):
+#            print len(phi), phi[i], Ct[i], '\n'
+    ##        print i
+    ##        rho = (1.0 - phi[i])*rhom + phi[i]*rhoi
+    #        
+    #        print '\n',i, Ct[i][0][0], Ct[i][3][3]
+            g[i] = Ct[i][3][3]/2
+    #        g[i] = Ct[i][3][3]
+            ks[i] = Ct[i][0][0] - 4./3.*g[i]
+            ksg[i] = Ct[i][0][0] #c11
+            c12[i] = Ct[i][0][1]
+            c22[i] = Ct[i][1][1]
+            c33[i] = Ct[i][2][2]
+            c44[i] = Ct[i][3][3]
+            c66[i] = Ct[i][5][5]
+#            print Ct[i][0][0], phi, rho[i]    
+            kk[i] = (1.0 - phi[i])*76.8 + phi[i]*2.2 + 4./3.*g[i]  
+#            print 'vpppss', Ct[i][0][0]
+            Vp[i] = (((Ct[i][0][0]/rho[i]).real)**0.5)
+
+        crackdens = np.empty(ni)
+        for i in range(len(phi)): 
+            if phi[i]==0:
+                crackdens[i] = 00.
+            else:
+                crackdens[i] = (3.*phi[i])/(4.*np.pi*.99)
+#        print crackdens[0], ksg[0], minmatrix[0][0][0], len(ksg/minmatrix[0][0][0]), crackdens
+#        plt.plot(crackdens, ksg/minmatrix[0][0][0], 'g') # plot c11
+        if j==1:
+            plt.plot(phi[1:], ksg[1:]/minmatrix[0][0][0], 'b') # plot c11
+            plt.xscale('symlog')
+#        if j==1:
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+#            plt.xscale('symlog')
+#        if j==2: 
+#            plt.plot(phi, ksg/minmatrix[0][0][0], 'b') # plot c11
+        else:
+#            plt.plot(phi, g, 'b') # plot c11
+#            plt.plot(phi, ks, 'r') # plot c11
+            plt.plot(phi, ks/ks[0], 'r') # plot c11
+#            plt.plot(phi[1:], Vp[1:], 'b') # plot c11
+#            plt.plot(phi[1:], rho[1:], 'b') # plot c11
+#        plt.plot(phi, c12/minmatrix[0][0][1], 'b') # plot c122
+#        plt.plot(phi, c22, 'o') # plot c22
+#        plt.plot(phi, c33/minmatrix[0][2][2], 'b') # plot c33
+#        plt.plot(phi, c44/minmatrix[0][3][3], 'b') # plot c44
+#        plt.plot(phi, c66/minmatrix[0][5][5], 'g') # plot c66
+#        plt.xlim(0,0.5)
+#        plt.ylim(0,80)
+    plt.grid(True)
+#    plt.show()
+#    minmatrix, gr_fam, cavity
+
     
 def DualCom (matrix, rfam, sfam, cavity,alphad, k=None, omega=None):  #ni = number of inclusions
     C0 =  matrix[0] 
@@ -2307,8 +2736,10 @@ def DualCom (matrix, rfam, sfam, cavity,alphad, k=None, omega=None):  #ni = numb
     Sphi_ = sfam[2]
     Cr = Rinclusion[0]
     rhor = Rinclusion[1]
+    viscr = Rinclusion[3]
     Cs = Sinclusion[0]
     rhos = Sinclusion[1]
+    viscs = Sinclusion[3]
     lphi = [0]
     lrho = [rhom]
     lpoison = [poisi]
@@ -2338,11 +2769,11 @@ def DualCom (matrix, rfam, sfam, cavity,alphad, k=None, omega=None):  #ni = numb
         vs = p*Sphi_/ni
         #novoniterp
 #        alphad = Ralpha
-        Gd, E2 = TensorG (C0, alphad, poison)
+#        Gd, E2 = TensorG (C0, alphad, poison)
+        rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
         if omega:
-#            print 'tem k e omega', vr, vs, Ralpha, Salpha
-            tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega)
-            ts = IncludeT (C0, Cs, Gs, poison, Salpha, Sphi_, k, omega)
+            tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega, rhom, viscr)
+            ts = IncludeT (C0, Cs, Gs, poison, Salpha, Sphi_, k, omega, rhom, viscs)
         temp1 = vr*tr
         temp2 = vs*ts
         temp3 = temp1 + temp2
@@ -2361,7 +2792,7 @@ def DualCom (matrix, rfam, sfam, cavity,alphad, k=None, omega=None):  #ni = numb
 #        print temp1[0][0], temp2[0][0],temp4[0][0]
 #        arqtestes.write(str(str(tr[0][0]) +'  '+ str(ts[0][0]) +'  '+ str(temp3[0][0])+ '\n'))
         Ct = C0 + temp6
-        rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
+#        rho_ = (1.0 - vr - vs)*rhom + vr*rhor + vs*rhos
         lct.append(Ct)
         lphi.append((vr+vs))
         lrho.append(rho_)
@@ -2577,7 +3008,7 @@ def TMAFIRST (matrix, sfam, cavity, omega=100):  #ni = number of inclusions
         lrho.append(rho_)
     return [lct, lrho, lpoison], lphi
 
-def TMASECOND (matrix, rfam, sfam, cavity,alphad, k =np.identity(3), omega=100):  #ni = number of inclusions
+def TMASECOND (matrix, rfam, sfam, cavity,alphad, k, omega):  #ni = number of inclusions
     C0 = matrix[0] 
     rhom = matrix[1]
     poisi = matrix[2]
@@ -2589,8 +3020,10 @@ def TMASECOND (matrix, rfam, sfam, cavity,alphad, k =np.identity(3), omega=100):
     Sphi_ = sfam[2]
     Cr = Rinclusion[0]
     rhor = Rinclusion[1]
+    viscr = Rinclusion[3]
     Cs = Sinclusion[0]
     rhos = Sinclusion[1]
+    viscs = Sinclusion[3]
 #    alphad = 0.99
     lphi = [0]
     lrho = [rhom]
@@ -2660,8 +3093,8 @@ def TMASECOND (matrix, rfam, sfam, cavity,alphad, k =np.identity(3), omega=100):
     for p in range(ni):
         if omega:
 #            print 'tem k e omega'
-            tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega)
-            ts = IncludeT (C0, Cs, Gs, poison, Salpha, Sphi_, k, omega)
+            tr = IncludeT (C0, Cr, Gr, poison, Ralpha, Rphi_, k, omega, rhom, viscr)
+            ts = IncludeT (C0, Cs, Gs, poison, Salpha, Sphi_, k, omega, rhom, viscs)
         vr = p*Rphi_/ni
         vs = p*Sphi_/ni
 #        alphad = Ralpha
@@ -2811,7 +3244,7 @@ def mainIrineuTmatrix():
     #    plt.plot(phi, kk, 'y')
     #    plt.plot(phi, g, 'r')
     #    plt.plot(phi, rho, 'r')
-    #    plt.grid()
+        
     #    plt.show()
     #        print 'ploto',Vp[-1], vpo
         plt.plot(phi, Vp, 'r') # plot vp
@@ -2823,6 +3256,7 @@ def mainIrineuTmatrix():
             bulk.pop(i)
         else: 
             plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+    plt.grid(True)
     plt.show()
     
 def TMAIrineu (matrix, rfam, sfam, cavity,alphad):  #ni = number of inclusions
@@ -3012,29 +3446,63 @@ def plotdata ():  #ni = number of inclusions
                 crackdens[i] = 00.
             else:
                 crackdens[i] = (3.*(macroporos[i]+microporos[i]))/(4.*np.pi*(macroaspect[i]+microaspect[i]))
-    
-    for i in range(len(macroporos)):        
-        if bulk[i] ==0.:
-            macroporos.pop(i)
-            bulk.pop(i)
-        else: 
-            plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+#    print a10_plug_perm, type (a10_plug_perm), '\n\n',np.asarray(a10_plug_perm)
+    poros = np.asarray(a10_plug_poros)
+    perm = np.asarray(a10_plug_perm)
+    plt.semilogy(poros,perm,'ob')
+#    for i in range(len(a10_plug_perm)):        
+#    for i in range(len(macroporos)):        
+#        if bulk[i] ==0.:
+#            macroporos.pop(i)
+#            bulk.pop(i)
+            
+#        else: 
+#            plt.plot(macroporos[i]+microporos[i],vvp[i],'o')
+#        if a10_plug_perm[i]>100:
+#            plt.plot(a10_plug_poros[i],a10_plug_perm[i],'ob')
+#        plt.semilogy(a10_plug_poros[i],a10_plug_perm[i],'ob')
 #            plt.plot(crackdens[i],vvp[i],'o')
+    plt.grid()
 #    plt.show()
 
 if __name__ == '__main__':
+    import numpy as np
 #    main4()
 #    main5()
-    main6()
+#    main6()
+#    main7()
 #    plotdata()
 #    main4()
-#    main1()
+    main1()
 #    mainsat()
-#    mainbiot()
-    
+#    mainbiot()    
+    Km= 76.85
+    Gm= 32.03    
+    rhom= 2.71
+    kf = 2.2
+    rhof = 1.1
+    rock=[Km,Gm,rhom]
+    fluid= [kf,rhof]
+    phit= 0.5
+    rhob = 2.1
+    perm = np.identity(3)
+    method = 'second'
+#    omega = 4000 #well log
+    inclusion1 = (0.5, 0.1)
+    inclusion2 = (0.5, 0.1)
+    alphad=0.1
+#    tmatrix_log(rock, fluid, phit, rhob, perm, inclusion1, inclusion2, alphad, method)
 #    mainIrineuDem()
 #    mainIrineuTmatrix()
 
+    dem_log(rock, fluid, phit, rhob, inclusion1, inclusion2)
+#    rock=(km,gm,rhom)
+#    fluid= (kf,rhof)
+#    phit= log
+#    rhob = log
+#    inclusion = (fraction, alpha)
+        
+        
 #    import matplotlib.pyplot as plt
 #    plt.figure()
 #    plt.subplot(211)
